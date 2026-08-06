@@ -1,0 +1,141 @@
+{
+  "schemaVersion": 2,
+  "name": "HUSTLE",
+  "generatedAt": "2026-08-01",
+  "provisional": true,
+  "provisionalReason": "Extracted from the redesign prototype (hustle-shell.html, landing + Stage 1). The production app does not use these tokens yet. Re-run /impeccable document in scan mode once they land in the real codebase.",
+
+  "narrative": {
+    "northStar": "The Painted Signboard",
+    "northStarRationale": "Township vernacular signwriting — hand-lettered spaza boards, enamel paint on warm metal, condensed capitals sized to be read across a road, one or two colours because paint costs money. Legible before pretty, because it is read outdoors on a cheap screen.",
+    "mood": ["warm", "worn", "direct", "hot", "scarce"],
+    "antiReference": {
+      "what": "The shipped build at hustle-simulation.netlify.app — cool #0B1724 navy dashboard, #162130 cards, single amber accent, Inter, emoji icon system, 10px micro-caps.",
+      "why": "Reads as a 2021 crypto/fintech admin panel and carries none of the world the writing establishes. Confirmed with the owner 2026-08-01 as unintentional. Replace, do not polish.",
+      "confirmedBy": "owner",
+      "confirmedOn": "2026-08-01"
+    }
+  },
+
+  "colorMeta": {
+    "ink":               { "displayName": "Bitumen",        "role": "base + text-on-accent", "note": "Warm near-black. Never #000, never a cool navy." },
+    "surface":           { "displayName": "Worn Board",     "role": "card surface" },
+    "surface-raised":    { "displayName": "Lifted Board",   "role": "controls on surface" },
+    "surface-warm":      { "displayName": "Scorched",       "role": "resume/interrupt bar only", "note": "Solid. Replaced a translucent rgba(226,87,30,.2) whose real contrast was unknowable." },
+    "hairline":          { "displayName": "Seam",           "role": "all borders" },
+    "bone":              { "displayName": "Bone",           "role": "primary text", "contrastOnSurface": 15.9 },
+    "bone-muted":        { "displayName": "Bone Muted",     "role": "secondary text", "contrastOnSurface": 8.2 },
+    "bone-quiet":        { "displayName": "Bone Quiet",     "role": "muted floor", "contrastOnSurfaceRaised": 5.4, "note": "Nothing goes quieter than this token." },
+    "enamel-orange":     { "displayName": "Enamel Orange",  "role": "the single accent", "contrastOnInk": 5.0 },
+    "enamel-orange-hi":  { "displayName": "Enamel Hot",     "role": "light stop of accent gradient", "contrastOnInk": 6.0 },
+    "enamel-orange-lo":  { "displayName": "Enamel Burnt",   "role": "borders and hard offsets ONLY", "contrastOnInk": 3.28, "warning": "Fails 4.5:1 against ink. Never place ink text on this." },
+    "sign-yellow":       { "displayName": "Sign Yellow",    "role": "stripe motif + focus ring", "warning": "Never body text." },
+    "survive-green":     { "displayName": "Survive Green",  "role": "positive game state" },
+    "crisis-red":        { "displayName": "Crisis Red",     "role": "risk and loss state" }
+  },
+
+  "extensions": {
+    "shadows": {
+      "board":  "0 2px 0 rgba(0,0,0,.55), 0 18px 34px -20px rgba(0,0,0,.85)",
+      "cta":    "0 3px 0 #7d2b0c, 0 14px 24px -14px rgba(0,0,0,.9)",
+      "ctaHover": "0 5px 0 #7d2b0c, 0 20px 28px -14px rgba(0,0,0,.9)",
+      "ctaActive": "0 1px 0 #7d2b0c",
+      "philosophy": "Printed, not glowing. One hard offset suggesting a physical painted board plus a neutral ambient drop. Chromatic glow is banned — a zero-offset coloured shadow on dark is the default generated-UI tell and the impeccable detector flags it as dark-glow."
+    },
+
+    "motion": {
+      "step": "200ms cubic-bezier(.2,.7,.3,1)",
+      "entry": "rise .45s — translateY(14px) + opacity",
+      "rules": [
+        "Animate transform and opacity only.",
+        "Stat bars use scaleX with transform-origin left, never width. Width animation thrashes layout and the detector flags it as layout-transition.",
+        "All durations collapse to 0.001ms under prefers-reduced-motion: reduce."
+      ]
+    },
+
+    "focus": {
+      "ring": "3px solid #F2A81C",
+      "offset": "3px",
+      "selector": ":focus-visible",
+      "note": "The shipped bundle contains zero :focus and zero outline declarations across 421,113 chars. Measured live: outlineStyle 'none', boxShadow 'none'."
+    },
+
+    "breakpoints": {
+      "modeCards": "640px",
+      "opportunityGrid": "680px",
+      "stepperLabels": "720px",
+      "statGrid": "780px",
+      "landingSplit": "900px",
+      "note": "The shipped build has zero @media queries and one max-width:440px, wasting ~66% of a 1280px viewport."
+    },
+
+    "texture": {
+      "grain": "fixed SVG feTurbulence baseFrequency .85 numOctaves 3, opacity .32, mix-blend-mode overlay, pointer-events none",
+      "ambient": "two radial washes — rgba(226,87,30,.17) at 12% -8%, rgba(242,168,28,.10) at 92% 108%",
+      "why": "The base is never a flat fill. Pure flat vectors read sterile."
+    },
+
+    "motif": {
+      "name": "enamel stripe",
+      "css": "content:''; position:absolute; inset:0 auto 0 0; width:8px; background:repeating-linear-gradient(180deg, #E2571E 0 26px, #F2A81C 26px 52px);",
+      "appliesTo": ["board", "points pool", "resume bar"],
+      "replaces": "accent border-left on cards",
+      "why": "A thick coloured border on one side of a card is the single most recognisable tell of AI-generated UI (detector rule: side-tab). The stripe carries two colours and a rhythm, which a border-left cannot. Caught in the first draft of the prototype — three instances — and replaced."
+    },
+
+    "typographyFloors": {
+      "body": "16px",
+      "label": "12px",
+      "rule": "Cut words, never shrink below the floor.",
+      "evidence": "Shipped build: 87 of ~144 fontSize declarations at <=13px, 25 at 10px. The failing text is the labelling layer — Demand, Competition, Cost — so the player compares numbers they cannot read in daylight."
+    },
+
+    "tapTargets": {
+      "minimum": "48px",
+      "pairedSteppers": "52px",
+      "evidence": "Shipped −/+ are 143x40 as adjacent siblings. 9 of 10 targets on the Profile stage fail 44x44 on height."
+    },
+
+    "gradientRule": {
+      "rule": "When text sits on a gradient, EVERY stop must clear the contrast threshold against that text colour — not just the light one.",
+      "evidence": "Shipped primary CTA: #FFFFFF on linear-gradient(135deg, #E8F0F8, rgba(232,240,248,.733)) = 1.15:1 against both stops, on the only exit from Stage 1. The prototype's first fix attempt used enamel-orange → enamel-orange-lo; the dark stop measured 3.28:1 and also failed. Shipping pair is enamel-orange-hi → enamel-orange.",
+      "toolingCaveat": "Both the impeccable detector and hand-rolled contrast harnesses resolve background via background-color only and ignore background-image, so they mis-report gradient buttons in BOTH directions — false-positive on dark-text-on-bright, false-negative risk on light-on-light. Always resolve gradient stops explicitly."
+    },
+
+    "productRules": [
+      "Persist to localStorage on every state change; push a history entry per stage. On a low-end Android that kills backgrounded tabs, a lost run is a lost lesson.",
+      "Gate heavy media behind an explicit tap. Poster is the default; video is opt-in. The audience pays for data by the megabyte.",
+      "The disabled state must name the unmet condition ('Spend 12 more points'), not restate the action in invisible ink.",
+      "Never pre-solve a stage. Stage 1 opens at 2/2/2/2 with 12 points to spend so the + control the tutorial describes is actually live.",
+      "Opportunity cards must differ before they are scanned — place name, signal tag, one-line teaser. Five identical placeholders make the first tap a coin flip inside a market-research stage."
+    ],
+
+    "bans": [
+      "#FFF, #000, or any cool grey — every neutral here is warm",
+      "accent border-left on cards (detector: side-tab)",
+      "coloured glow shadow on dark (detector: dark-glow)",
+      "animating width/height/padding/margin (detector: layout-transition)",
+      "text below 16px body / 12px label",
+      "emoji as the icon system",
+      "text on a translucent background",
+      "a second accent hue"
+    ]
+  },
+
+  "verification": {
+    "prototype": "hustle-shell.html",
+    "measuredAt": ["375x812", "999px"],
+    "results": {
+      "impeccableDetector": "[] — clean",
+      "contrastFailures": 0,
+      "tapTargetsUnder44px": 0,
+      "horizontalOverflow": 0,
+      "minFontSize": "12px",
+      "headings": { "h1": 1, "h2": 2, "h3": 6 },
+      "ariaAndRoleAttributes": 16,
+      "landmarks": 10,
+      "routing": "#landing -> #profile, history.length 4, Back returns to landing",
+      "persistence": "localStorage write verified on every mutation"
+    }
+  }
+}

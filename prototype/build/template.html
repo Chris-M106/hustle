@@ -1,0 +1,1554 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>HUSTLE — New Venture Creation Game</title>
+<meta name="description" content="You have R2,500 and a dream. Build your hustle, read the market, survive 14 days of business reality in KwaDream.">
+<meta name="theme-color" content="#14100D">
+<meta property="og:title" content="HUSTLE — The New Venture Creation Game">
+<meta property="og:description" content="R2,500. 14 days. One shot. A New Venture Creation game set in KwaDream.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%23E2571E'/%3E%3Ctext x='50' y='72' font-size='62' font-family='Arial Black,sans-serif' font-weight='900' text-anchor='middle' fill='%2314100D'%3EH%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+<style>
+/* ============================================================
+   HUSTLE — redesigned shell prototype, all four stages
+   Anti-reference: the shipped build's cool #0B1724 dashboard.
+   Direction: township signwriting — hand-painted enamel boards,
+   warm bitumen dark, condensed caps, one hot accent, real grain.
+
+   Stage 2/3/4 copy, opportunity data, crisis events, plan
+   questions and ending bands are the REAL authored content,
+   extracted from the deployed bundle. Nothing here is invented
+   game content; only the shell around it is new.
+   ============================================================ */
+
+:root{
+  --ink:      #14100D;
+  --surface:  #1F1813;
+  --surface-2:#2A211A;
+  --surface-warm: #31211A;  /* resume/interrupt bar only */
+  --hairline: #3A2E24;
+  --line:     var(--hairline);
+
+  --text:     #F5EDE3;  /* 15.9:1 on --surface */
+  --text-2:   #C4B3A0;  /*  8.2:1 on --surface */
+  --text-3:   #A89480;  /*  5.4:1 on --surface-2 — the muted floor */
+
+  /* single accent. Both gradient stops must clear 4.5:1 against --ink,
+     because --ink is the text colour that sits on them. #B33F13 did not (3.28:1). */
+  --accent:   #E2571E;  /* 5.0:1 on --ink */
+  --accent-hi:#F2701F;  /* 6.0:1 on --ink */
+  --accent-lo:#B33F13;  /* borders and shadows only — never behind --ink text */
+  --sign:     #F2A81C;  /* signage stripe + focus ring only, never body text */
+  --good:     #6FBF73;  /* 7.8:1 on --surface */
+
+  /* DESIGN.md gives one crisis-red, #E2453C, with no measured contrast.
+     It fails as text: 4.30:1 on --surface and 3.87:1 on --surface-raised.
+     Split it the same way the accent is already split — the saturated value
+     for stripes/borders where nothing is read, a lighter one for text. */
+  --bad:      #E2453C;  /* stripes, borders, non-text state only */
+  --bad-text: #EE6B60;  /* 5.8:1 on --surface, 5.2:1 on --surface-raised */
+
+  --r-sm: 4px;  --r-md: 10px;  --r-lg: 18px;
+
+  /* printed edge, not a glow: one hard offset + a neutral ambient drop */
+  --shadow: 0 2px 0 rgba(0,0,0,.55), 0 18px 34px -20px rgba(0,0,0,.85);
+
+  --stripe: repeating-linear-gradient(180deg,
+            var(--accent) 0 26px, var(--sign) 26px 52px);
+
+  --step: 200ms cubic-bezier(.2,.7,.3,1);
+}
+
+*,*::before,*::after{ box-sizing:border-box; }
+html{ scroll-behavior:smooth; -webkit-text-size-adjust:100%; }
+
+body{
+  margin:0;
+  min-height:100dvh;
+  background:var(--ink);
+  color:var(--text);
+  font-family:Archivo, "Segoe UI", system-ui, sans-serif;
+  font-size:16px;              /* body floor 16, labels never below 12 */
+  line-height:1.55;
+  text-wrap:pretty;
+  overflow-x:hidden;
+}
+
+/* grain — breaks the digital flatness the old build had none of */
+body::after{
+  content:""; position:fixed; inset:0; z-index:60; pointer-events:none;
+  opacity:.32; mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E");
+}
+body::before{
+  content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+  background:
+    radial-gradient(80% 55% at 12% -8%,  rgba(226,87,30,.17), transparent 62%),
+    radial-gradient(70% 50% at 92% 108%, rgba(242,168,28,.10), transparent 60%);
+}
+
+/* ---------- typography ---------- */
+h1,h2,h3{ font-family:Anton, "Arial Narrow", sans-serif; font-weight:400;
+  text-transform:uppercase; letter-spacing:-.01em; line-height:.94; margin:0;
+  text-wrap:balance; }
+h1{ font-size:clamp(3rem, 15vw, 7.5rem); }
+h2{ font-size:clamp(1.875rem, 7vw, 3rem); }
+h3{ font-size:clamp(1.125rem, 4vw, 1.5rem); letter-spacing:0; }
+p{ margin:0 0 1rem; max-width:62ch; }
+.money{ font-family:"JetBrains Mono", ui-monospace, monospace;
+  font-variant-numeric:tabular-nums; font-weight:700; letter-spacing:-.02em; }
+.label{ font-size:.75rem; font-weight:600; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--text-3); }   /* 12px floor */
+
+/* ---------- a11y furniture the old build had zero of ---------- */
+.skip{ position:absolute; left:-9999px; top:0; z-index:100;
+  background:var(--sign); color:var(--ink); padding:.9rem 1.4rem;
+  font-weight:700; border-radius:0 0 var(--r-md) 0; }
+.skip:focus{ left:0; }
+
+:where(a,button,[tabindex]):focus-visible{
+  outline:3px solid var(--sign); outline-offset:3px; border-radius:var(--r-sm);
+}
+
+.sr{ position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+
+/* ---------- shell ---------- */
+.wrap{ width:min(100% - 2rem, 1180px); margin-inline:auto; }
+
+header.top{
+  position:sticky; top:0; z-index:40;
+  background:rgba(20,16,13,.86);
+  backdrop-filter:blur(14px) saturate(1.3);
+  border-bottom:1px solid var(--line);
+  box-shadow:inset 0 -1px 0 rgba(245,237,227,.04);
+}
+.top-in{ display:flex; align-items:center; gap:1rem; padding:.7rem 0;
+  flex-wrap:wrap; }
+.brand{ font-family:Anton,sans-serif; font-size:1.5rem; letter-spacing:.02em;
+  text-transform:uppercase; display:flex; align-items:center; gap:.5rem; }
+.brand i{ width:12px; height:22px; background:var(--accent); display:block;
+  transform:skewX(-12deg); border-radius:1px; }
+
+.steps{ display:flex; gap:.35rem; margin-left:auto; list-style:none;
+  padding:0; margin-block:0; }
+.steps li{ position:relative; }
+.steps b{
+  display:grid; place-items:center; width:2rem; height:2rem;
+  font-family:"JetBrains Mono",monospace; font-size:.75rem; font-weight:700;
+  color:var(--text-3); background:var(--surface-2);
+  border:1px solid var(--line); border-radius:var(--r-sm);
+}
+.steps .done b{ color:var(--ink); background:var(--text-2); border-color:var(--text-2); }
+.steps [aria-current="step"] b{
+  color:var(--ink); background:var(--accent); border-color:var(--accent);
+}
+.steps s{ text-decoration:none; }
+/* Under 720px the chip is a 32px square holding only the numeral. The stage
+   name is carried by .sr for assistive tech. Measured on a 360px render: with
+   .nm visible it laid out as a third grid row, 53.8px wide inside a 32px box,
+   so the four labels overlapped each other and read "ProfiScan". */
+.steps .nm{ display:none; }
+@media (min-width:720px){
+  .steps b{ width:auto; height:2.1rem; padding:0 .8rem; gap:.5rem;
+    grid-auto-flow:column; font-size:.75rem; letter-spacing:.1em;
+    text-transform:uppercase; font-family:Archivo,sans-serif; }
+  .steps .nm{ display:block; }
+}
+
+/* ---------- resume bar ---------- */
+.resume{
+  display:none; align-items:center; gap:.85rem; flex-wrap:wrap;
+  position:relative; overflow:hidden;
+  /* solid, not translucent — a translucent fill makes the real contrast
+     unknowable to both the eye and any checker */
+  background:var(--surface-warm);
+  border:1px solid var(--accent-lo);
+  border-radius:var(--r-md); padding:.85rem 1rem .85rem 1.5rem; margin:1rem 0 0;
+}
+.resume::before{ content:""; position:absolute; inset:0 auto 0 0; width:8px;
+  background:var(--stripe); }
+.resume.on{ display:flex; }
+.resume p{ margin:0; font-size:1rem; }
+
+/* ---------- screens ---------- */
+.screen{ display:none; padding-block:2.5rem 4rem; }
+.screen.on{ display:block; animation:rise .45s var(--step) both; }
+@keyframes rise{ from{ opacity:0; transform:translateY(14px); } }
+
+/* ---------- landing ---------- */
+.board{
+  position:relative; margin-top:1.5rem; padding:clamp(1.6rem,5vw,3.2rem);
+  background:
+    linear-gradient(180deg, rgba(245,237,227,.05), transparent 40%),
+    var(--surface);
+  border:1px solid var(--line);
+  border-radius:var(--r-lg);
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
+.board::before{
+  content:""; position:absolute; inset:0 auto 0 0; width:10px;
+  background:var(--stripe);
+}
+.board > *{ position:relative; }
+.kicker{ display:inline-block; transform:rotate(-1.2deg);
+  background:var(--sign); color:var(--ink);
+  font-weight:700; font-size:.75rem; letter-spacing:.18em;
+  text-transform:uppercase; padding:.32rem .7rem; border-radius:2px;
+  margin-bottom:1.1rem; }
+.lede{ font-size:clamp(1rem,2.6vw,1.25rem); color:var(--text-2);
+  margin-top:1.2rem; }
+.lede b{ color:var(--text); }
+
+.landing-grid{ display:grid; gap:1.5rem; }
+@media (min-width:900px){
+  .landing-grid{ grid-template-columns:1.35fr .85fr; align-items:start; }
+}
+
+/* data-saver video: poster only until asked. 1 MB never auto-fetches. */
+.media{ position:relative; border-radius:var(--r-md); overflow:hidden;
+  border:1px solid var(--line); aspect-ratio:4/5;
+  background:linear-gradient(160deg,#4a2a16,#241a12 60%,#1a1310); }
+.media img{ width:100%; height:100%; object-fit:cover; display:block; opacity:.85; }
+.media button{
+  position:absolute; inset:auto .7rem .7rem; min-height:48px;
+  background:rgba(20,16,13,.82); backdrop-filter:blur(8px);
+  color:var(--text); border:1px solid var(--line); border-radius:var(--r-md);
+  font:600 .875rem Archivo,sans-serif; cursor:pointer; padding:.7rem 1rem;
+  transition:background var(--step), transform var(--step);
+}
+.media button:hover{ background:rgba(42,33,26,.95); }
+.media button:active{ transform:translateY(1px) scale(.99); }
+.media small{ display:block; color:var(--text-3); font-weight:500;
+  letter-spacing:.02em; font-size:.75rem; }
+
+/* ---------- mode choice ---------- */
+.modes{ display:grid; gap:.8rem; margin:2rem 0 1.2rem; }
+@media (min-width:640px){ .modes{ grid-template-columns:1fr 1fr; } }
+.mode{
+  position:relative; text-align:left; cursor:pointer;
+  padding:1.1rem 1.2rem; min-height:48px;
+  background:var(--surface-2); color:var(--text);
+  border:1px solid var(--line);
+  border-radius:var(--r-md); font-family:inherit;
+  transition:border-color var(--step), transform var(--step), background var(--step);
+}
+.mode:hover{ background:#31261e; transform:translateY(-2px); }
+.mode:active{ transform:translateY(0) scale(.995); }
+.mode[aria-pressed="true"]{ border-color:var(--accent); background:#31261e; }
+/* selection reads as a stamped corner flag, not an accent rail */
+.mode[aria-pressed="true"]::after{
+  content:"✓ chosen"; position:absolute; top:0; right:0;
+  background:var(--accent); color:var(--ink);
+  font:700 .75rem/1 Archivo,sans-serif; letter-spacing:.1em; text-transform:uppercase;
+  padding:.4rem .55rem; border-radius:0 var(--r-md) 0 var(--r-sm);
+}
+.mode h3{ margin-bottom:.25rem; }
+.mode p{ margin:0; font-size:.875rem; color:var(--text-2); }
+.mode .t{ font-size:.75rem; color:var(--text-3); font-weight:600;
+  letter-spacing:.06em; margin-top:.5rem; display:block; }
+
+/* ---------- THE P0 CTA FIX ----------
+   shipped: pure-white text on linear-gradient(135deg, ${profile.color}, ${profile.color}BB)
+            — parametric on the winning profile colour, so ALL FIVE profiles fail.
+            Worst is The All-Rounder at 1.15:1; best is The Connector at 2.85:1.
+   here:    color:#14100D on the accent gradient = 6.41:1 / 5.06:1, both stops. */
+.cta{
+  display:inline-flex; align-items:center; justify-content:center; gap:.6rem;
+  width:100%; min-height:56px; padding:1rem 1.6rem;
+  background:linear-gradient(135deg, var(--accent-hi), var(--accent));
+  color:var(--ink);
+  font:700 1rem/1 Archivo,sans-serif; letter-spacing:.01em;
+  border:none; border-radius:var(--r-md); cursor:pointer;
+  /* hard printed offset + neutral ambient. No chromatic halo. */
+  box-shadow:0 3px 0 #7d2b0c, 0 14px 24px -14px rgba(0,0,0,.85);
+  transition:transform var(--step), box-shadow var(--step), filter var(--step);
+}
+.cta:hover{ filter:brightness(1.07); transform:translateY(-2px);
+  box-shadow:0 5px 0 #7d2b0c, 0 20px 28px -14px rgba(0,0,0,.85); }
+.cta:active{ transform:translateY(2px); box-shadow:0 1px 0 #7d2b0c; }
+/* legible disabled state — shipped build used 1.76:1 near-invisible ink */
+.cta:disabled{
+  background:transparent; color:var(--text-3); cursor:not-allowed;
+  border:2px dashed var(--line); box-shadow:none; filter:none; transform:none;
+}
+.cta.ghost{
+  background:var(--surface-2); color:var(--text);
+  border:1px solid var(--line); box-shadow:none;
+}
+.cta.ghost:hover{ background:#31261e; filter:none; box-shadow:none; }
+
+.row{ display:flex; gap:.8rem; flex-wrap:wrap; margin-top:1.6rem; }
+.row .cta{ width:auto; flex:1 1 15rem; }
+
+/* ---------- stage 1: stat allocation ---------- */
+.stage-head{ display:flex; align-items:baseline; gap:1rem; flex-wrap:wrap;
+  margin-bottom:.6rem; }
+.pool{
+  position:relative; overflow:hidden;
+  display:flex; align-items:center; gap:.9rem; margin:1.4rem 0;
+  background:var(--surface); border:1px solid var(--line);
+  border-radius:var(--r-md); padding:.9rem 1.1rem .9rem 1.5rem;
+}
+.pool::before{ content:""; position:absolute; inset:0 auto 0 0; width:8px;
+  background:var(--stripe); }
+.pool .n{ font-size:2.25rem; color:var(--accent); line-height:1; }
+.pool.done::before{ background:var(--good); }
+.pool.done .n{ color:var(--good); }
+
+.stats{ display:grid; gap:.8rem; }
+@media (min-width:780px){ .stats{ grid-template-columns:1fr 1fr; } }
+
+.stat{
+  background:var(--surface); border:1px solid var(--line);
+  border-radius:var(--r-md); padding:1.1rem;
+  display:grid; grid-template-columns:1fr auto; gap:.4rem 1rem; align-items:center;
+}
+.stat h3{ grid-column:1; }
+.stat p{ grid-column:1; margin:0; font-size:.875rem; color:var(--text-2); }
+.ctrl{ grid-column:2; grid-row:1/3; display:flex; align-items:center; gap:.5rem; }
+/* 52x52 — shipped steppers were 143x40, under the 44px floor */
+.ctrl button{
+  width:52px; height:52px; min-width:52px; min-height:52px;
+  display:grid; place-items:center;
+  background:var(--surface-2); color:var(--text);
+  border:1px solid var(--line); border-radius:var(--r-md);
+  font-size:1.5rem; font-weight:700; line-height:1; cursor:pointer;
+  transition:background var(--step), transform var(--step), border-color var(--step);
+}
+.ctrl button:hover:not(:disabled){ background:var(--accent); color:var(--ink);
+  border-color:var(--accent); }
+.ctrl button:active:not(:disabled){ transform:scale(.94); }
+.ctrl button:disabled{ opacity:.42; cursor:not-allowed; }
+.ctrl .v{ font-family:"JetBrains Mono",monospace; font-variant-numeric:tabular-nums;
+  font-size:1.5rem; font-weight:700; min-width:2.2ch; text-align:center; }
+
+.bar{ grid-column:1/-1; height:6px; border-radius:99px; background:var(--surface-2);
+  overflow:hidden; margin-top:.5rem; }
+/* scaleX, not width — width animation thrashes layout */
+.bar i{ display:block; height:100%; width:100%; transform-origin:left center;
+  background:linear-gradient(90deg,var(--accent-lo),var(--accent));
+  transition:transform var(--step); }
+
+/* ---------- profile reveal ---------- */
+.reveal{ position:relative; overflow:hidden; margin-top:1.4rem;
+  background:var(--surface); border:1px solid var(--line);
+  border-radius:var(--r-lg); padding:clamp(1.4rem,4vw,2.4rem) clamp(1.4rem,4vw,2.4rem)
+  clamp(1.4rem,4vw,2.4rem) clamp(1.9rem,5vw,3rem); box-shadow:var(--shadow); }
+.reveal::before{ content:""; position:absolute; inset:0 auto 0 0; width:10px;
+  background:var(--stripe); }
+.reveal .who{ font-family:Anton,sans-serif; text-transform:uppercase;
+  font-size:clamp(1.875rem,6vw,2.625rem); line-height:.96; color:var(--accent); }
+.reveal .watch{ margin-top:1rem; padding-top:1rem; border-top:1px solid var(--line);
+  color:var(--text-2); font-size:1rem; }
+
+/* ---------- stage 2: the scanner ---------- */
+.scan-grid{ display:grid; gap:.8rem; margin-top:1.2rem; }
+@media (min-width:680px){ .scan-grid{ grid-template-columns:repeat(3,1fr); } }
+.spot{
+  position:relative; text-align:left; cursor:pointer; padding:1.1rem;
+  min-height:48px;
+  background:var(--surface); color:var(--text);
+  border:1px solid var(--line); border-radius:var(--r-md);
+  font-family:inherit; display:grid; gap:.45rem; align-content:start;
+  transition:transform var(--step), border-color var(--step), background var(--step);
+}
+.spot:hover{ transform:translateY(-3px); border-color:var(--accent-lo);
+  background:var(--surface-2); }
+.spot:active{ transform:translateY(0); }
+.spot .where{ font-family:Anton,sans-serif; text-transform:uppercase;
+  font-size:1.125rem; letter-spacing:0; }
+.spot .hint{ font-size:.875rem; color:var(--text-2); margin:0; }
+.spot[aria-pressed="true"]{ border-color:var(--accent); background:var(--surface-2); }
+.spot[aria-pressed="true"]::after{
+  content:"✓ chosen"; position:absolute; top:0; right:0;
+  background:var(--accent); color:var(--ink);
+  font:700 .75rem/1 Archivo,sans-serif; letter-spacing:.1em; text-transform:uppercase;
+  padding:.4rem .55rem; border-radius:0 var(--r-md) 0 var(--r-sm);
+}
+.tag{ justify-self:start; font-size:.75rem; font-weight:700; letter-spacing:.1em;
+  text-transform:uppercase; padding:.22rem .5rem; border-radius:2px;
+  background:var(--surface-2); color:var(--text-2); border:1px solid var(--line); }
+.tag.hot{ background:#3a2216; color:#F0A583; border-color:var(--accent-lo); }
+.tag.risk{ background:#3a1d1a; color:#F09A94; border-color:#7d2620; }
+
+/* scanned readout — the numbers the player is asked to compare.
+   12px floor, never the shipped 10px. */
+.readout{ display:grid; grid-template-columns:repeat(3,1fr); gap:.5rem;
+  margin-top:.3rem; border-top:1px solid var(--line); padding-top:.7rem; }
+.readout div{ display:grid; gap:.15rem; }
+.readout dt{ font-size:.75rem; font-weight:600; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--text-3); }
+.readout dd{ margin:0; font-family:"JetBrains Mono",monospace;
+  font-variant-numeric:tabular-nums; font-weight:700; font-size:1rem; }
+.v-good{ color:var(--good); } .v-warn{ color:var(--sign); } .v-bad{ color:var(--bad-text); }
+.insight{ font-size:.875rem; color:var(--text-2); margin:.2rem 0 0; }
+.overbudget{ color:var(--bad-text); font-weight:700; font-size:.875rem; }
+.opening{ color:var(--text-3); font-weight:700; font-size:.875rem; margin:0; }
+/* the money consequence of the commit, next to the commit, not after it */
+.commit-hint{ margin-top:.9rem; color:var(--text-2); font-size:1rem;
+  max-width:46ch; }
+
+/* ---------- stage 3: the plan ---------- */
+.qcard{ position:relative; overflow:hidden; background:var(--surface);
+  border:1px solid var(--line); border-radius:var(--r-md);
+  padding:1.2rem 1.2rem 1.2rem 1.7rem; margin-top:1rem; }
+.qcard::before{ content:""; position:absolute; inset:0 auto 0 0; width:8px;
+  background:var(--stripe); }
+.qcard.answered::before{ background:var(--good); }
+.qcard h3{ margin-bottom:.2rem; }
+.qcard .q{ color:var(--text-2); margin:.4rem 0 1rem; }
+.answers{ display:grid; gap:.6rem; }
+.ans{
+  position:relative; text-align:left; cursor:pointer; font-family:inherit;
+  min-height:48px; padding:.9rem 1rem;
+  background:var(--surface-2); color:var(--text);
+  border:1px solid var(--line); border-radius:var(--r-md);
+  transition:border-color var(--step), background var(--step), transform var(--step);
+}
+.ans:hover{ background:#31261e; transform:translateY(-2px); }
+.ans:active{ transform:translateY(0); }
+.ans[aria-pressed="true"]{ border-color:var(--accent); background:#31261e; }
+.ans[aria-pressed="true"]::after{
+  content:"✓"; position:absolute; top:.5rem; right:.7rem;
+  color:var(--accent); font-weight:700; }
+
+/* ---------- stage 4: the crisis ---------- */
+.hud{
+  position:sticky; top:3.6rem; z-index:30;
+  display:grid; grid-template-columns:auto 1fr auto; gap:.8rem 1rem;
+  align-items:center; margin:1.2rem 0;
+  background:var(--surface); border:1px solid var(--line);
+  border-radius:var(--r-md); padding:.8rem 1rem;
+}
+.hud .cash{ font-size:clamp(1.25rem,5vw,1.875rem); line-height:1; }
+.hud .cash.low{ color:var(--bad-text); }
+.hud .cash.ok{ color:var(--good); }
+.daycount{ font-family:"JetBrains Mono",monospace; font-variant-numeric:tabular-nums;
+  font-weight:700; font-size:1.125rem; }
+.daycount span{ color:var(--text-3); font-size:.875rem; }
+/* every counter derives from DAYS. The shipped footer hardcoded 7 against a
+   14-slot dataset, so Day 1 read "6 days remaining" and Days 7-14 all read
+   "Final day" while the game kept going. */
+.remain{ grid-column:1/-1; font-size:.75rem; color:var(--text-3);
+  letter-spacing:.08em; text-transform:uppercase; font-weight:600; }
+.track{ grid-column:1/-1; display:flex; gap:3px; }
+.track i{ flex:1; height:6px; border-radius:99px; background:var(--surface-2); }
+.track i.past{ background:var(--text-3); }
+.track i.now{ background:var(--accent); }
+
+.event{ position:relative; overflow:hidden; background:var(--surface);
+  border:1px solid var(--line); border-radius:var(--r-lg);
+  padding:clamp(1.3rem,4vw,2.2rem) clamp(1.3rem,4vw,2.2rem)
+          clamp(1.3rem,4vw,2.2rem) clamp(1.8rem,5vw,2.8rem);
+  box-shadow:var(--shadow); }
+.event::before{ content:""; position:absolute; inset:0 auto 0 0; width:10px;
+  background:var(--stripe); }
+.event.income::before{ background:var(--good); }
+.event.expense::before, .event.emergency::before{ background:var(--bad); }
+.event .kind{ display:inline-block; margin-bottom:.8rem;
+  background:var(--surface-2); border:1px solid var(--line);
+  color:var(--text-2); font-size:.75rem; font-weight:700; letter-spacing:.14em;
+  text-transform:uppercase; padding:.25rem .55rem; border-radius:2px; }
+.event .desc{ color:var(--text-2); margin-top:.8rem; }
+.delta{ font-size:1.5rem; margin-top:.6rem; }
+.delta.up{ color:var(--good); } .delta.down{ color:var(--bad-text); }
+
+.outcome{ margin-top:1.2rem; padding-top:1.2rem; border-top:1px solid var(--line); }
+.lesson{ position:relative; overflow:hidden; margin-top:1rem;
+  background:var(--surface-2); border:1px solid var(--line);
+  border-radius:var(--r-md); padding:1rem 1rem 1rem 1.5rem; }
+.lesson::before{ content:""; position:absolute; inset:0 auto 0 0; width:8px;
+  background:var(--sign); }
+.lesson h3{ font-size:1rem; }
+.lesson p{ margin:.4rem 0 0; color:var(--text-2); font-size:1rem; }
+.lesson .nvc{ display:block; margin-top:.6rem; font-size:.75rem;
+  letter-spacing:.1em; text-transform:uppercase; color:var(--text-3);
+  font-weight:600; }
+
+/* ---------- ending ---------- */
+.verdict{ font-family:Anton,sans-serif; text-transform:uppercase;
+  font-size:clamp(2.25rem,9vw,4rem); line-height:.94; margin-top:.4rem; }
+.verdict.tier-1{ color:var(--sign); }
+.verdict.tier-2{ color:var(--good); }
+.verdict.tier-3{ color:var(--accent); }
+.verdict.tier-4{ color:var(--bad-text); }
+/* The ending was three equal tiles — Cash / Plan grade / Crisis decisions —
+   which DESIGN.md bans, and which threw away the only thing a learner can
+   actually study: what they chose on each of the 14 days. The ledger is the
+   run itself, in a shape you can photograph and take to a facilitator. */
+.endsum{ display:flex; flex-wrap:wrap; gap:.4rem 1.6rem; margin-top:1.6rem;
+  padding:1rem 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+.endsum b{ display:block; font-size:.75rem; font-weight:600; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--text-3); }
+.endsum span{ font-family:"JetBrains Mono",monospace; font-variant-numeric:tabular-nums;
+  font-weight:700; font-size:1.5rem; }
+
+.ledger-head{ margin-top:2rem; display:flex; align-items:baseline;
+  justify-content:space-between; gap:1rem; flex-wrap:wrap; }
+.ledger-head h3{ font-family:Anton,sans-serif; text-transform:uppercase;
+  letter-spacing:.02em; font-size:1.5rem; }
+.ledger-head p{ color:var(--text-3); font-size:.875rem; }
+
+/* wide content scrolls inside its own box; the page never scrolls sideways */
+.ledger-wrap{ margin-top:.8rem; overflow-x:auto; border:1px solid var(--line);
+  border-radius:var(--r-md); background:var(--surface-2); }
+.ledger{ width:100%; border-collapse:collapse; font-size:1rem; }
+.ledger caption{ text-align:left; padding:.9rem 1rem 0; color:var(--text-3);
+  font-size:.75rem; }
+.ledger th{ text-align:left; padding:.7rem 1rem; font-size:.75rem; font-weight:700;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--text-3);
+  border-bottom:1px solid var(--line); white-space:nowrap; }
+.ledger td{ padding:.75rem 1rem; border-bottom:1px solid var(--line);
+  vertical-align:top; }
+.ledger tr:last-child td{ border-bottom:0; }
+.ledger .d{ font-family:"JetBrains Mono",monospace; font-variant-numeric:tabular-nums;
+  color:var(--text-3); white-space:nowrap; }
+.ledger .what{ min-width:15rem; }
+.ledger .what b{ display:block; font-weight:600; }
+.ledger .what span{ color:var(--text-2); font-size:.875rem; }
+.ledger .n{ font-family:"JetBrains Mono",monospace; font-variant-numeric:tabular-nums;
+  font-weight:700; text-align:right; white-space:nowrap; }
+.ledger .n.up{ color:var(--good); } .ledger .n.down{ color:var(--bad-text); }
+.ledger .run{ color:var(--text-2); }
+.ledger .run.broke{ color:var(--bad-text); }
+/* the pivot day is marked with the same painted stripe the event cards use,
+   not a tint — a printed mark reads at any contrast setting */
+.ledger tr.pivot td{ background:var(--surface); }
+.ledger tr.pivot .d{ position:relative; color:var(--text); }
+.ledger tr.pivot .d::before{ content:""; position:absolute; inset:-.75rem auto -.75rem -1rem;
+  width:6px; background:var(--bad); }
+.pivot-note{ margin-top:1rem; color:var(--text-2); font-size:1rem; }
+.pivot-note strong{ color:var(--text); }
+
+/* ---------- field note (ending screen) ---------- */
+.fieldnote{ margin:2rem 0 0; max-width:22rem; }
+.fieldnote img{ display:block; width:100%; height:auto;
+  border:1px solid var(--line); border-radius:var(--r-md); box-shadow:var(--shadow); }
+.fieldnote figcaption{ margin-top:.6rem; }
+.fieldnote figcaption p{ margin:.25rem 0 0; font-size:.875rem; color:var(--text-2); }
+
+.note{ margin-top:2.5rem; padding-top:1.5rem; border-top:1px solid var(--line);
+  color:var(--text-3); font-size:.875rem; }
+.note a{ color:var(--text-2); }
+
+@media (prefers-reduced-motion:reduce){
+  /* degrade, don't disable — the opacity crossfade survives, the travel does not */
+  .screen.on{ animation-name:fadein; }
+  @keyframes fadein{ from{ opacity:0; } }
+  *,*::before,*::after{ transition-duration:.001ms !important;
+    scroll-behavior:auto !important; }
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the game</a>
+
+<header class="top">
+  <div class="wrap top-in">
+    <span class="brand"><i aria-hidden="true"></i>Hustle</span>
+    <nav aria-label="Game progress">
+      <ol class="steps" id="steps">
+        <li><b><s>1</s><span class="sr">Stage 1: </span><span class="nm">Profile</span></b></li>
+        <li><b><s>2</s><span class="sr">Stage 2: </span><span class="nm">Scan</span></b></li>
+        <li><b><s>3</s><span class="sr">Stage 3: </span><span class="nm">Plan</span></b></li>
+        <li><b><s>4</s><span class="sr">Stage 4: </span><span class="nm">Survive</span></b></li>
+      </ol>
+    </nav>
+  </div>
+</header>
+
+<main id="main" class="wrap">
+
+  <div class="resume" id="resume" role="status">
+    <p><strong>You have a hustle in progress.</strong> <span id="resumeWhere"></span></p>
+    <button class="cta" style="width:auto;min-height:48px;padding:.7rem 1.2rem" id="resumeBtn">Carry on →</button>
+    <button class="cta ghost" style="width:auto;min-height:48px;padding:.7rem 1.2rem" id="freshBtn">Start over</button>
+  </div>
+
+  <p class="sr" role="status" aria-live="polite" id="live"></p>
+
+  <!-- ================= LANDING ================= -->
+  <section class="screen on" id="s-landing" aria-labelledby="t-landing">
+    <div class="board">
+      <div class="landing-grid">
+        <div>
+          <span class="kicker">KwaDream presents</span>
+          <h1 id="t-landing">Hustle</h1>
+          <p class="lede">You are unemployed in KwaDream with <b class="money">R2,500</b> and a dream.</p>
+          <p class="lede">Read the street. Pick your shot. Write the plan. Then survive
+             <b>14 days</b> of business reality — load shedding, late suppliers,
+             and customers who pay next week. Every choice carries forward.</p>
+
+          <h2 class="sr">Choose your mode</h2>
+          <div class="modes" role="group" aria-label="Choose your mode">
+            <button class="mode" id="m-learn" aria-pressed="true">
+              <h3>Learn mode</h3>
+              <p>Lessons open after every event. Built for a first run.</p>
+              <span class="t">25–40 min · recommended first</span>
+            </button>
+            <button class="mode" id="m-play" aria-pressed="false">
+              <h3>Play mode</h3>
+              <p>Lessons on tap. Faster. For revision and replay.</p>
+              <span class="t">12–18 min</span>
+            </button>
+          </div>
+          <button class="cta" id="startBtn">Start in Learn mode →</button>
+          <p class="label" style="margin-top:1rem">NQF Level 2 · SAQA 49648 · NVC Learnership</p>
+        </div>
+
+        <figure class="media" style="margin:0">
+          <!-- Real asset from the live build, hot-linked for prototype purposes only.
+               Self-host it before this goes anywhere. Was a picsum.photos placeholder with
+               invented alt text describing a scene the image did not contain — never write
+               alt text for an image you have not seen. -->
+          <img id="poster" alt="Opening frame of the KwaDream intro film." src="https://hustle-simulation.netlify.app/img/kwadream-poster.jpg">
+          <button id="playVid">▶ Play the intro
+            <small>1 MB video · only loads if you tap</small>
+          </button>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= STAGE 1 — PROFILE ================= -->
+  <section class="screen" id="s-profile" aria-labelledby="t-profile">
+    <div class="stage-head"><span class="label">Stage 1 of 4</span></div>
+    <h2 id="t-profile">Build your hustle</h2>
+    <p style="color:var(--text-2);margin-top:.8rem">
+      Before you spend a single rand, know yourself. These four traits follow you
+      into every stage — the Scanner, the plan, and the crisis.
+    </p>
+
+    <div class="pool" id="pool">
+      <span class="n money" id="left">12</span>
+      <div>
+        <span class="label" id="poolLabel">Points left to spend</span>
+        <p style="margin:0;font-size:.875rem;color:var(--text-2)" id="poolHint">
+          Everyone starts at 2. Spend all 12 to unlock the reveal.
+        </p>
+      </div>
+    </div>
+
+    <div class="stats" id="stats"></div>
+
+    <div style="margin-top:1.6rem">
+      <button class="cta" id="revealBtn" disabled>Spend 12 more points</button>
+    </div>
+
+    <div id="revealBox" hidden></div>
+  </section>
+
+  <!-- ================= STAGE 2 — SCANNER ================= -->
+  <section class="screen" id="s-scan" aria-labelledby="t-scan">
+    <div class="stage-head"><span class="label">Stage 2 of 4</span></div>
+    <h2 id="t-scan">Scan the street</h2>
+    <p style="color:var(--text-2);margin-top:.8rem" id="scanIntro"></p>
+
+    <div class="pool">
+      <span class="n money" id="wallet">R2,500</span>
+      <div>
+        <span class="label">Your capital</span>
+        <p style="margin:0;font-size:.875rem;color:var(--text-2)" id="scanHint">
+          Tap a spot to scan it. Each one reads differently before you scan —
+          that is the point.
+        </p>
+      </div>
+    </div>
+
+    <h3 class="sr">Opportunities</h3>
+    <div class="scan-grid" id="scanGrid" role="group" aria-label="Opportunities to scan"></div>
+
+    <div class="row">
+      <button class="cta" id="commitBtn" aria-describedby="commitHint" disabled>Scan a spot first</button>
+    </div>
+    <p class="commit-hint" id="commitHint"></p>
+  </section>
+
+  <!-- ================= STAGE 3 — PLAN ================= -->
+  <section class="screen" id="s-plan" aria-labelledby="t-plan">
+    <div class="stage-head"><span class="label">Stage 3 of 4</span></div>
+    <h2 id="t-plan">Write the plan</h2>
+    <p style="color:var(--text-2);margin-top:.8rem" id="planIntro"></p>
+
+    <div id="planHost"></div>
+
+    <div class="row">
+      <button class="cta" id="planBtn" disabled>Answer all 5 sections</button>
+    </div>
+  </section>
+
+  <!-- ================= STAGE 4 — CRISIS ================= -->
+  <section class="screen" id="s-crisis" aria-labelledby="t-crisis">
+    <div class="stage-head"><span class="label">Stage 4 of 4</span></div>
+    <h2 id="t-crisis">Survive the cash flow crisis</h2>
+
+    <div class="hud">
+      <span class="cash money" id="cash">R2,500</span>
+      <span class="label" style="justify-self:start">Cash on hand</span>
+      <span class="daycount" id="dayCount">1<span>/14</span></span>
+      <span class="remain" id="remain"></span>
+      <span class="track" id="track" aria-hidden="true"></span>
+    </div>
+
+    <div class="event" id="eventBox"></div>
+
+    <div class="row" id="crisisRow"></div>
+  </section>
+
+  <!-- ================= ENDING ================= -->
+  <section class="screen" id="s-end" aria-labelledby="t-end">
+    <div class="board">
+      <span class="kicker" id="endKicker">Trading closed</span>
+      <h2 id="t-end" class="sr">Your result</h2>
+      <p class="verdict" id="endTitle"></p>
+      <p class="lede" id="endMsg"></p>
+
+      <div class="endsum" id="endSummary"></div>
+
+      <div class="ledger-head">
+        <h3 id="t-ledger">Your 14 days</h3>
+        <p>Every day, every choice, every rand.</p>
+      </div>
+      <div class="ledger-wrap"><table class="ledger" id="endLedger" aria-labelledby="t-ledger"></table></div>
+      <p class="pivot-note" id="endPivot"></p>
+
+      <figure class="fieldnote">
+        <img src="img/soweto-street.jpg" width="307" height="348" loading="lazy"
+             alt="Boys playing street soccer on a dirt pitch in Soweto, Orlando West, with township rooftops and hills behind them.">
+        <figcaption>
+          <span class="label">This is KwaDream</span>
+          <p>Soweto, Orlando West — the streets the fiction is drawn from.</p>
+        </figcaption>
+      </figure>
+
+      <div class="row">
+        <button class="cta" id="againBtn">Run it again →</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="note">
+    <p><strong>Prototype shell — all four stages.</strong> Vanilla JS standing in for the React
+    tree. The game content (opportunities, plan questions, all 14 crisis days, lesson cards,
+    ending bands) is the real authored content extracted from the deployed bundle; only the
+    shell is new.</p>
+    <p>Demonstrates every P0/P1/P2 fix: legible primary CTA on both gradient stops, save and
+    resume, real back-button routing, one <code>DAYS</code> constant driving every counter,
+    16px type floor, 52px steppers, focus rings, heading hierarchy, labelled scanner cards,
+    data-gated video, reduced-motion degradation.</p>
+    <p><strong>One deliberate simplification:</strong> the shipped build picks one of three
+    variants per day at random. This prototype always takes the first, so a facilitator can
+    reproduce a run. The randomiser is one line and is marked in the source.</p>
+  </div>
+</main>
+
+<script>
+/*__DATA__*/
+</script>
+<script src="vendor/anime.umd.min.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  /* v3: the state shape gained log/committedTo/setupCost, and cash now means
+     "after setup" rather than "always CAPITAL". A v2 save resumed into this
+     build would show a ledger with no rows and an un-debited balance. */
+  var KEY = "hustle.save.v3";
+  var MIN = 2, MAX = 10, TOTAL = 20, CAPITAL = 2500;
+
+  var STATS = [
+    { k:"innovation", name:"Innovation",  desc:"Spot openings others walk past. Unlocks creative ways out of a crisis." },
+    { k:"finance",    name:"Finance IQ",  desc:"See the hidden cost before it lands. Warns you before the worst call." },
+    { k:"sales",      name:"Sales power", desc:"Read demand in the Scanner. Charge what the work is worth." },
+    { k:"network",    name:"Network",     desc:"Better supplier terms. Buys you a lifeline when the cash runs dry." }
+  ];
+
+  /* the five archetypes, real names and taglines from the bundle.
+     The colours are NOT carried over — the old palette is the anti-reference. */
+  var PROFILES = {
+    innovation:{ name:"The Innovator",  tagline:"You see what others miss.",              watch:"Ideas are cheap. Execution is not." },
+    finance:   { name:"The Calculator", tagline:"You know your numbers cold.",            watch:"Analysis can become an excuse not to start." },
+    sales:     { name:"The Closer",     tagline:"You can sell.",                          watch:"Selling what you cannot deliver kills trust." },
+    network:   { name:"The Connector",  tagline:"You know who to call.",                  watch:"Substitutes relationships for systems." },
+    allrounder:{ name:"The All-Rounder",tagline:"Versatile. No obvious weak spots.",      watch:"Being everything to everyone — pick your weapon." }
+  };
+
+  /* pre-scan teasers. The shipped build rendered five byte-identical
+     "Unknown Opportunity" cards, so the first tap was a coin flip inside a
+     stage whose whole premise is market research. `signal` already exists in
+     the authored data (3/2/2/1/1) — it was simply never surfaced. */
+  var TEASE = {
+    phonerepair:{ where:"Taxi rank",     hint:"Three people this morning asked the same question. Nobody nearby answers it." },
+    spaza:      {  where:"Spaza row",     hint:"Six shops already trading. Whatever you sell, someone sells it cheaper." },
+    salon:      {  where:"Corner house",  hint:"Steady weekly custom. The rent is the part that bites." },
+    shisanyama: {  where:"Stadium gate",  hint:"Dead midweek. Tournament weekends the queue goes round the block." },
+    clothing:   {  where:"Market strip",  hint:"Cheapest way in. Fifteen other traders had the same idea." }
+  };
+  var SIGNAL = { 3:{ t:"Loud signal", c:"hot" }, 2:{ t:"Steady signal", c:"" }, 1:{ t:"Spiky signal", c:"risk" } };
+
+  var state = null;
+  function fresh(){
+    return {
+      stage:"landing", mode:"learn",
+      stats:{ innovation:MIN, finance:MIN, sales:MIN, network:MIN },
+      locked:false,
+      scanned:{}, biz:null,
+      plan:{},
+      day:0, cash:CAPITAL, crisisScore:0, resolved:false, ended:false,
+      log:[]        /* one entry per resolved day — the ending ledger reads this */
+    };
+  }
+
+  var $ = function(id){ return document.getElementById(id); };
+  function esc(s){ return String(s).replace(/[&<>"]/g, function(c){
+    return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]; }); }
+  function rands(n){ return "R" + Math.round(n).toLocaleString("en-ZA"); }
+  function say(msg){ $("live").textContent = msg; }
+
+  /* ---------- motion ----------
+     anime.js is vendored locally (vendor/anime.umd.min.js) so the game never
+     depends on a live CDN — the audience is on prepaid data and may be
+     offline entirely. It's still a progressive layer, not a dependency: if
+     the vendor file is missing for any reason, `animate` stays null and
+     every render falls back to the CSS-only .screen.on{animation:rise}.
+     Everything below only ever touches transform/opacity (DESIGN.md's
+     motion rule) and no-ops completely under prefers-reduced-motion. */
+  var animate = window.anime && window.anime.animate;
+  var stagger = window.anime && window.anime.stagger;
+  function reduced(){ return matchMedia("(prefers-reduced-motion: reduce)").matches; }
+
+  /* fades + lifts a group of already-rendered elements in, staggered.
+     Never used on anything a screen reader needs immediately — the aria-live
+     region via say() already announces the real state on every change. */
+  function revealIn(targets, opts){
+    if(!animate || reduced()) return;
+    opts = opts || {};
+    animate(targets, {
+      opacity:[0,1], translateY:[opts.y || 10, 0],
+      duration: opts.duration || 420, delay: stagger(opts.step || 55),
+      ease: opts.ease || "outCubic"
+    });
+  }
+
+  /* ticks a counter from its current displayed value to `to`. Purely visual —
+     the aria-live announcement in say() already carries the real number, so a
+     screen reader is never waiting on this animation to finish. */
+  function countTo(el, to, fmt, ms){
+    if(!el) return;
+    var from = parseFloat((el.textContent || "").replace(/[^0-9.-]/g, "")) || 0;
+    if(!animate || reduced() || from === to){ el.textContent = fmt(to); return; }
+    var o = { v: from };
+    animate(o, { v: to, duration: ms || 500, ease: "outCubic",
+      onUpdate: function(){ el.textContent = fmt(Math.round(o.v)); } });
+  }
+
+  /* Every render in this file rebuilds its host with innerHTML, which destroys
+     the focused element. Keyboard and screen-reader users were dumped back to
+     document start on every tap — the stat steppers were unusable that way.
+     Capture the focused id, re-render, then restore: same id if it survived and
+     is still enabled, else a live sibling, else the caller's fallback. */
+  function keepFocus(render, fallbackId){
+    var a = document.activeElement;
+    var id = a && a.id ? a.id : null;
+    var sibs = [];
+    if(id && a.parentNode){
+      sibs = [].filter.call(a.parentNode.children, function(n){
+        return n.id && n !== a && n.tagName === a.tagName;
+      }).map(function(n){ return n.id; });
+    }
+    render();
+    if(!id && !fallbackId) return;
+    var tries = [id].concat(sibs, [fallbackId]);
+    for(var i = 0; i < tries.length; i++){
+      var el = tries[i] && document.getElementById(tries[i]);
+      if(el && !el.disabled && el.offsetParent !== null){
+        el.focus({ preventScroll:true });
+        return;
+      }
+    }
+  }
+
+  /* ---------- persistence ---------- */
+  function save(){
+    try{ localStorage.setItem(KEY, JSON.stringify({ s:state, at:Date.now() })); }
+    catch(e){ /* private mode — game still playable, just not resumable */ }
+  }
+  function load(){
+    try{
+      var d = JSON.parse(localStorage.getItem(KEY));
+      return (d && d.s && d.s.stats) ? d : null;
+    }catch(e){ return null; }
+  }
+  function clearSave(){ try{ localStorage.removeItem(KEY); }catch(e){} }
+
+  /* ---------- stage 1 ---------- */
+  function spent(){ return STATS.reduce(function(n,s){ return n + state.stats[s.k]; }, 0); }
+  function left(){ return Math.max(0, TOTAL - spent()); }   /* clamped: a negative pool can never advance */
+
+  function archetype(){
+    var best = null, bestV = -1, tie = false;
+    STATS.forEach(function(s){
+      var v = state.stats[s.k];
+      if(v > bestV){ bestV = v; best = s.k; tie = false; }
+      else if(v === bestV){ tie = true; }
+    });
+    return tie ? "allrounder" : best;
+  }
+
+  function renderStats(){
+    var host = $("stats");
+    host.innerHTML = "";
+    STATS.forEach(function(s){
+      var v = state.stats[s.k];
+      var el = document.createElement("article");
+      el.className = "stat";
+      el.innerHTML =
+        '<h3>' + esc(s.name) + '</h3>' +
+        '<p>' + esc(s.desc) + '</p>' +
+        '<div class="ctrl">' +
+          '<button type="button" id="st-' + s.k + '-dn" data-k="' + s.k + '" data-d="-1" aria-label="Lower ' + esc(s.name) + '">−</button>' +
+          '<span class="v" aria-hidden="true">' + v + '</span>' +
+          '<button type="button" id="st-' + s.k + '-up" data-k="' + s.k + '" data-d="1" aria-label="Raise ' + esc(s.name) + '">+</button>' +
+        '</div>' +
+        '<div class="bar"><i style="transform:scaleX(' + (v/MAX) + ')"></i></div>' +
+        '<span class="sr">' + esc(s.name) + ' is ' + v + ' out of ' + MAX + '</span>';
+      host.appendChild(el);
+    });
+    host.querySelectorAll("button").forEach(function(b){
+      var k = b.dataset.k, d = +b.dataset.d, v = state.stats[k];
+      b.disabled = state.locked || (d > 0 ? (v >= MAX || left() <= 0) : (v <= MIN));
+      b.addEventListener("click", function(){ bump(k, d); });
+    });
+    if(!renderStats.done){ revealIn(host.children, { y:8, step:60 }); renderStats.done = true; }
+  }
+
+  function bump(k, d){
+    if(state.locked) return;
+    var v = state.stats[k] + d;
+    if(v < MIN || v > MAX) return;
+    if(d > 0 && left() <= 0) return;
+    state.stats[k] = v;
+    keepFocus(function(){ renderStats(); syncPool(); }, "revealBtn");
+    save();
+    say(STATS.filter(function(s){ return s.k === k; })[0].name +
+        " is now " + v + ". " + left() + " points left.");
+  }
+
+  function syncPool(){
+    var n = left(), done = n === 0;
+    countTo($("left"), n, function(v){ return String(v); }, 350);
+    $("pool").classList.toggle("done", done);
+    $("poolLabel").textContent = done ? "All points spent" : "Points left to spend";
+    $("poolHint").textContent = done
+      ? "Your profile is ready. Nothing here is wasted — every point changes what you see later."
+      : "Everyone starts at " + MIN + ". Spend all " + n + " to unlock the reveal.";
+    var btn = $("revealBtn");
+    btn.hidden = state.locked;
+    btn.disabled = !done;                    /* never enabled at a negative pool */
+    btn.textContent = done ? "Reveal your profile →" : "Spend " + n + " more point" + (n === 1 ? "" : "s");
+  }
+
+  function showReveal(fromClick){
+    var p = PROFILES[archetype()];
+    var box = $("revealBox");
+    box.hidden = false;
+    box.innerHTML =
+      '<div class="reveal" id="revealCard" tabindex="-1">' +
+        '<span class="label">Your profile</span>' +
+        '<p class="who">' + esc(p.name) + '</p>' +
+        '<p style="color:var(--text-2);margin:.6rem 0 0">' + esc(p.tagline) + '</p>' +
+        '<p class="watch"><strong>Watch for:</strong> ' + esc(p.watch) + '</p>' +
+      '</div>' +
+      '<div class="row"><button class="cta" id="toScan">Open the Scanner →</button></div>';
+    $("toScan").addEventListener("click", function(){ show("scan", true); });
+    state.locked = true;
+    renderStats(); syncPool(); save();
+    /* revealBtn just hid itself; without this, focus falls to <body> and the
+       profile a learner spent 20 points earning is never announced */
+    if(fromClick) $("revealCard").focus({ preventScroll:true });
+    say("Profile locked in: " + p.name + ".");
+    if(fromClick && animate && !reduced()){
+      animate("#revealCard", { opacity:[0,1], scale:[.96,1], duration:480, ease:"outBack" });
+      revealIn(box.querySelectorAll(".label, .who, .reveal p"), { y:8, step:70, duration:380 });
+    }
+  }
+
+  /* ---------- stage 2 ---------- */
+  function vClass(word){
+    return word === "HIGH" || word === "LOW" ? "" : "";
+  }
+  function demandClass(w){ return w === "HIGH" ? "v-good" : w === "MEDIUM" ? "v-warn" : "v-bad"; }
+  function compClass(w){   return w === "LOW"  ? "v-good" : w === "MEDIUM" ? "v-warn" : "v-bad"; }
+
+  /* The authored data ships `fits` as a hand-set flag, and it is wrong for the
+     salon: cost 2200 against CAPITAL 2500, flagged fits:false. The shipped
+     build then printed "Over budget by R-300". Derive it instead — one source
+     of truth, and a negative overage becomes unrepresentable. */
+  function affordable(o){ return o.cost <= CAPITAL; }
+  /* The salon's authored insight states "startup cost exceeds your budget",
+     which followed from the wrong flag, not from the numbers. R2,200 of R2,500
+     does not exceed the budget — it consumes it, which is a sharper lesson and
+     the only sentence changed. Every other opportunity keeps its copy verbatim. */
+  var INSIGHT = { salon:"Strong recurring demand — but R2,200 of your R2,500 goes " +
+    "before you open. R300 is not working capital; it is one bad week. Consider starting from home." };
+  function insight(o){ return INSIGHT[o.id] || o.insight; }
+  function overBy(o){ return Math.max(0, o.cost - CAPITAL); }
+  /* what is left to actually trade with once the setup is paid for */
+  function opening(o){ return CAPITAL - o.cost; }
+  var THIN = 800;   /* below this, the setup has eaten the business */
+
+  function renderScan(){
+    var p = PROFILES[archetype()];
+    $("scanIntro").textContent =
+      "You are " + p.name + " with " + rands(CAPITAL) + " in hand. Five spots in KwaDream. " +
+      "Scan them, read the numbers, then commit your capital to one.";
+    $("wallet").textContent = rands(CAPITAL);
+
+    var host = $("scanGrid");
+    host.innerHTML = "";
+    OPPS.forEach(function(o){
+      var t = TEASE[o.id], sig = SIGNAL[o.signal];
+      var isScanned = !!state.scanned[o.id];
+      var chosen = state.biz === o.id;
+      var b = document.createElement("button");
+      b.type = "button";
+      b.id = "spot-" + o.id;
+      b.className = "spot";
+      b.setAttribute("aria-pressed", String(chosen));
+      /* every card has a distinct accessible name. The shipped build gave all
+         five the same one, which makes this stage unwinnable on a screen reader. */
+      b.setAttribute("aria-label",
+        t.where + " — " + o.name + ". " + sig.t + ". " +
+        (isScanned ? "Scanned: demand " + o.demand + ", competition " + o.comp +
+                     ", cost " + rands(o.cost) + ". " +
+                     (affordable(o) ? "Leaves " + rands(opening(o)) + " to trade with."
+                                    : "Over budget by " + rands(overBy(o)) + ".") +
+                     " Verdict " + o.verdict + "." +
+                     (chosen ? " Currently selected." : " Activate to choose it.")
+                   : "Not scanned yet. Activate to scan."));
+      b.innerHTML =
+        '<span class="where">' + esc(t.where) + '</span>' +
+        '<span class="tag ' + sig.c + '">' + esc(sig.t) + '</span>' +
+        '<p class="hint">' + esc(isScanned ? o.name : t.hint) + '</p>' +
+        (isScanned
+          ? '<dl class="readout">' +
+              '<div><dt>Demand</dt><dd class="' + demandClass(o.demand) + '">' + esc(o.demand) + '</dd></div>' +
+              '<div><dt>Compet.</dt><dd class="' + compClass(o.comp) + '">' + esc(o.comp) + '</dd></div>' +
+              '<div><dt>Cost</dt><dd>' + rands(o.cost) + '</dd></div>' +
+            '</dl>' +
+            '<p class="insight">' + esc(insight(o)) + '</p>' +
+            (!affordable(o)
+              ? '<p class="overbudget">Over budget by ' + rands(overBy(o)) + '</p>'
+              : opening(o) < THIN
+                ? '<p class="overbudget">Leaves only ' + rands(opening(o)) + ' to trade with</p>'
+                : '<p class="opening">Leaves ' + rands(opening(o)) + ' to trade with</p>')
+          : '');
+      b.addEventListener("click", function(){
+        if(!state.scanned[o.id]){
+          state.scanned[o.id] = true;
+          say(t.where + " scanned. " + o.name + ". Demand " + o.demand +
+              ", competition " + o.comp + ", cost " + rands(o.cost) + ".");
+        } else {
+          state.biz = o.id;
+          say(o.name + " selected.");
+        }
+        save(); keepFocus(renderScan);
+      });
+      host.appendChild(b);
+    });
+    if(!renderScan.done){ revealIn(host.children, { y:10, step:60 }); renderScan.done = true; }
+
+    var n = Object.keys(state.scanned).length;
+    var btn = $("commitBtn");
+    var hint = $("commitHint");
+    if(!state.biz){
+      btn.disabled = true;
+      btn.textContent = n === 0 ? "Scan a spot first" : "Tap a scanned spot to choose it";
+      hint.textContent = "";
+    } else {
+      var o = OPPS.filter(function(x){ return x.id === state.biz; })[0];
+      /* the commit button rewrites itself to carry the stakes — the best
+         single piece of writing in the shipped build, kept in spirit.
+         What is new is that the stake is now real: committing debits the
+         setup cost, so the button has to say what you will be left holding. */
+      if(!affordable(o)){
+        btn.disabled = true;
+        btn.textContent = o.short + " costs " + rands(o.cost) + " — you have " + rands(CAPITAL);
+        hint.textContent = "You are short " + rands(overBy(o)) +
+          ". No lender in KwaDream is funding day one. Pick something you can actually open.";
+      } else {
+        btn.disabled = false;
+        btn.textContent = (opening(o) < THIN ? "Take the risk: " : n < 3 ? "Choose anyway: " : "Choose ") +
+          o.short + " →";
+        hint.textContent = "Pays " + rands(o.cost) + " today. You open day 1 with " +
+          rands(opening(o)) + " to trade on." +
+          (n < 3 ? " You have scanned " + n + " of " + OPPS.length + " spots." : "");
+      }
+    }
+    $("scanHint").textContent = n === 0
+      ? "Tap a spot to scan it. Each one reads differently before you scan — that is the point."
+      : n + " of " + OPPS.length + " scanned. Tap a scanned spot again to commit to it.";
+  }
+
+  /* ---------- stage 3 ---------- */
+  function renderPlan(){
+    var o = OPPS.filter(function(x){ return x.id === state.biz; })[0];
+    $("planIntro").textContent =
+      "You committed to " + (o ? o.name : "your hustle") +
+      ". Now write the plan a funder would actually read. Five sections, one answer each.";
+
+    var host = $("planHost");
+    host.innerHTML = "";
+    PLAN.forEach(function(sec){
+      var picked = state.plan[sec.id];
+      var card = document.createElement("section");
+      card.className = "qcard" + (picked ? " answered" : "");
+      card.setAttribute("aria-labelledby", "q-" + sec.id);
+      var html =
+        '<h3 id="q-' + sec.id + '">' + esc(sec.title) + '</h3>' +
+        '<p class="q">' + esc(sec.q) + '</p>' +
+        '<div class="answers" role="group" aria-labelledby="q-' + sec.id + '">';
+      sec.answers.forEach(function(a){
+        html += '<button type="button" class="ans" id="ans-' + sec.id + '-' + a.id + '"' +
+                ' data-sec="' + sec.id + '" data-a="' + a.id + '"' +
+                ' aria-pressed="' + (picked === a.id) + '">' + esc(a.text) + '</button>';
+      });
+      html += '</div>';
+      card.innerHTML = html;
+      host.appendChild(card);
+    });
+    if(!renderPlan.done){ revealIn(host.children, { y:10, step:60 }); renderPlan.done = true; }
+    host.querySelectorAll(".ans").forEach(function(b){
+      b.addEventListener("click", function(){
+        state.plan[b.dataset.sec] = b.dataset.a;
+        save(); keepFocus(renderPlan, "planBtn");
+        say("Answer recorded. " + Object.keys(state.plan).length + " of " + PLAN.length + " sections done.");
+      });
+    });
+
+    var done = Object.keys(state.plan).length, btn = $("planBtn");
+    btn.disabled = done < PLAN.length;
+    /* the disabled label names the unmet condition, rather than restating the
+       action in near-invisible ink at 1.76:1 */
+    btn.textContent = done < PLAN.length
+      ? "Answer " + (PLAN.length - done) + " more section" + (PLAN.length - done === 1 ? "" : "s")
+      : "Open the 14 days →";
+  }
+
+  function planScore(){
+    var got = 0, max = 0;
+    PLAN.forEach(function(sec){
+      var best = Math.max.apply(null, sec.answers.map(function(a){ return a.score; }));
+      max += best;
+      var picked = sec.answers.filter(function(a){ return a.id === state.plan[sec.id]; })[0];
+      if(picked) got += picked.score;
+    });
+    return { got:got, max:max, frac:max ? got/max : 0 };
+  }
+
+  /* ---------- stage 4 ---------- */
+  function deck(){ return CRISIS[state.biz] || CRISIS.spaza; }
+  function DAYS(){ return deck().length; }              /* the single constant */
+
+  /* The ending divided crisisScore by a hardcoded 21. The real deck has 12
+     decision days scoring 1-3 each, so the achievable range is 14-36 — never
+     0-21. Every player therefore scored above 0.66 on that third of the grade
+     before making a single choice, and a perfect run overflowed the clamp.
+     Both bounds are measured off the live deck so the data stays the source. */
+  function crisisRange(){
+    var lo = 0, hi = 0;
+    deck().forEach(function(slot){
+      var e = slot[0];
+      if(!e.decisions) return;
+      var s = e.decisions.map(function(x){ return x.score || 0; });
+      lo += Math.min.apply(null, s);
+      hi += Math.max.apply(null, s);
+    });
+    return { lo:lo, hi:hi };
+  }
+  function crisisFrac(){
+    var r = crisisRange();
+    if(r.hi <= r.lo) return 0;
+    return Math.max(0, Math.min(1, (state.crisisScore - r.lo) / (r.hi - r.lo)));
+  }
+  function today(){
+    var slot = deck()[state.day];
+    /* the shipped build picks a random variant here:
+         slot[Math.floor(Math.random()*slot.length)]
+       fixed to [0] so a facilitator can reproduce a run. */
+    return slot[0];
+  }
+
+  function renderCrisis(){
+    var e = today(), n = DAYS(), d = state.day;
+
+    countTo($("cash"), state.cash, rands, 550);
+    $("cash").className = "cash money " + (state.cash <= 0 ? "low" : state.cash > 3000 ? "ok" : "");
+    $("dayCount").innerHTML = (d + 1) + '<span>/' + n + '</span>';
+
+    /* every counter derives from n. The shipped footer used a hardcoded 7
+       against this 14-slot dataset, so Day 1 read "6 days remaining" and
+       Days 7-14 all read "Final day" while the game kept going. */
+    var remain = n - d - 1;
+    $("remain").textContent = remain > 0
+      ? remain + " trading day" + (remain === 1 ? "" : "s") + " remaining"
+      : "Final day";
+
+    var track = $("track");
+    track.innerHTML = "";
+    for(var i = 0; i < n; i++){
+      var b = document.createElement("i");
+      b.className = i < d ? "past" : i === d ? "now" : "";
+      track.appendChild(b);
+    }
+
+    var box = $("eventBox");
+    box.className = "event " + esc(e.type);
+    var html =
+      '<span class="kind">Day ' + (d + 1) + ' · ' + esc(e.type) + '</span>' +
+      '<h3>' + esc(e.title) + '</h3>' +
+      '<p class="desc">' + esc(e.description) + '</p>';
+
+    if(!state.resolved){
+      if(e.decisions){
+        html += '<div class="answers" style="margin-top:1.2rem" role="group" aria-label="Your options">';
+        e.decisions.forEach(function(x){
+          html += '<button type="button" class="ans" id="cd-' + x.id + '" data-d="' + x.id + '">' +
+                    '<strong>' + esc(x.label) + '</strong><br>' +
+                    '<span style="color:var(--text-2);font-size:.875rem">' + esc(x.detail) +
+                    (x.cashChange ? ' · ' + (x.cashChange > 0 ? "+" : "−") + rands(Math.abs(x.cashChange)) : '') +
+                    '</span></button>';
+        });
+        html += '</div>';
+      } else {
+        html += '<p class="delta ' + (e.cashChange >= 0 ? "up" : "down") + ' money">' +
+                (e.cashChange >= 0 ? "+" : "−") + rands(Math.abs(e.cashChange)) + '</p>';
+      }
+    } else {
+      html += '<div class="outcome"><p style="margin:0">' + esc(state.lastOutcome) + '</p>' +
+              '<p class="delta ' + (state.lastDelta >= 0 ? "up" : "down") + ' money">' +
+              (state.lastDelta >= 0 ? "+" : "−") + rands(Math.abs(state.lastDelta)) + '</p></div>';
+      if(e.lesson && state.mode === "learn"){
+        html += '<div class="lesson"><h3>' + esc(e.lesson.title) + '</h3>' +
+                '<p>' + esc(e.lesson.body) + '</p>' +
+                '<span class="nvc">' + esc(e.lesson.nvc) + '</span></div>';
+      }
+    }
+    box.innerHTML = html;
+    revealIn(box.children, { y:10, step:70 });
+
+    box.querySelectorAll(".ans").forEach(function(b){
+      b.addEventListener("click", function(){
+        var pick = e.decisions.filter(function(x){ return x.id === b.dataset.d; })[0];
+        resolve(pick.cashChange, pick.score, pick.outcome, pick.label);
+      });
+    });
+
+    var row = $("crisisRow");
+    row.innerHTML = "";
+    if(!state.resolved && !e.decisions){
+      row.innerHTML = '<button class="cta" id="takeIt">Take the day →</button>';
+      $("takeIt").addEventListener("click", function(){
+        resolve(e.cashChange, 0, e.outcome, "No choice — the day happened");
+      });
+    } else if(state.resolved){
+      var last = d >= n - 1;
+      row.innerHTML = '<button class="cta" id="nextDay">' +
+        (last ? "See your result →" : "Day " + (d + 2) + " →") + '</button>';
+      $("nextDay").addEventListener("click", nextDay);
+    }
+    save();
+  }
+
+  function resolve(delta, score, outcome, label){
+    if(state.resolved) return;   /* a double-tap must not bank the day twice */
+    var e = today();
+    state.cash += (delta || 0);
+    state.crisisScore += (score || 0);
+    state.lastDelta = delta || 0;
+    state.lastOutcome = outcome || "";
+    state.resolved = true;
+    /* one row per resolved day. This is the ending — the old scorecard threw
+       the whole run away and printed three numbers. */
+    state.log.push({
+      day: state.day + 1,
+      event: e.title,
+      type: e.type,
+      choice: label || "",
+      delta: delta || 0,
+      score: score || 0,
+      cash: state.cash
+    });
+    save();
+    keepFocus(renderCrisis, "nextDay");
+    say(outcome + " Cash on hand " + rands(state.cash) + ".");
+  }
+
+  function nextDay(){
+    if(state.cash <= 0){ finish(true); return; }
+    if(state.day >= DAYS() - 1){ finish(false); return; }
+    state.day++;
+    state.resolved = false;
+    save(); renderCrisis();
+  }
+
+  /* ---------- ending ---------- */
+  /* bands and formula from the bundle:
+       o = planFrac*30 + min(1, cash/5000)*40 + min(1, crisisScore/21)*30 */
+  var BANDS = [
+    { min:80, tier:1, title:"Business Boss",            msg:"You planned smart, survived every crisis, and finished strong. This is how real businesses are built." },
+    { min:60, tier:2, title:"Sharp Operator",           msg:"Solid execution across the board. A few refinements and you're running a serious operation." },
+    { min:40, tier:3, title:"Hustler in Training",      msg:"You made it through — now study the lessons and go again with better decisions." },
+    { min:0,  tier:4, title:"Back to the Drawing Board", msg:"Every entrepreneur fails before they win. The lessons are all there — go back and apply them." }
+  ];
+
+  function finish(broke){
+    var ps = planScore();
+    var cr = crisisRange();
+    var o = ps.frac*30 + Math.min(1, Math.max(0, state.cash)/5000)*40 + crisisFrac()*30;
+    var band = broke ? BANDS[3] : BANDS.filter(function(b){ return o >= b.min; })[0];
+    state.ended = true; save();
+
+    $("endKicker").textContent = broke
+      ? "KwaDream · out of cash on day " + (state.day + 1)
+      : "KwaDream · day " + DAYS() + " · trading closed";
+    $("endTitle").textContent = band.title;
+    $("endTitle").className = "verdict tier-" + band.tier;
+    $("endMsg").textContent = broke
+      ? "You ran out of cash before day " + DAYS() + ". " + BANDS[3].msg
+      : band.msg;
+
+    $("endSummary").innerHTML =
+      '<p><b>Cash at close</b><span class="money">' + rands(state.cash) + '</span></p>' +
+      '<p><b>Plan grade</b><span>' + ps.got + '/' + ps.max + '</span></p>' +
+      /* the denominator is the deck's real ceiling, not a hardcoded 21 */
+      '<p><b>Crisis decisions</b><span>' + state.crisisScore + '/' + cr.hi + '</span></p>' +
+      '<p><b>Overall</b><span>' + Math.round(o) + '/100</span></p>';
+
+    renderLedger();
+    show("end", true);
+    if(animate && !reduced()){
+      animate("#endTitle", { opacity:[0,1], scale:[.94,1], duration:520, ease:"outBack" });
+      revealIn($("endSummary").children, { y:10, step:70 });
+      revealIn(document.querySelectorAll(".fieldnote"), { y:14, duration:500 });
+    }
+  }
+
+  /* The run, day by day. A learner can photograph this and take it to a
+     facilitator; three summary tiles gave them nothing to argue with. */
+  function renderLedger(){
+    var o = OPPS.filter(function(x){ return x.id === state.biz; })[0];
+    var log = state.log || [];
+
+    /* the pivot: the single worst rand swing of the run. Not the lowest cash —
+       that is usually just the last day of a slide, not the decision. */
+    var pivot = -1, worst = 0;
+    log.forEach(function(r, i){ if(r.delta < worst){ worst = r.delta; pivot = i; } });
+
+    var rows = '<caption>' + esc(o ? o.name : "Your hustle") +
+      (state.setupCost != null
+        ? " · opened with " + rands(CAPITAL - state.setupCost) + " after a " + rands(state.setupCost) + " setup"
+        : "") + '</caption>' +
+      '<thead><tr><th scope="col">Day</th><th scope="col">What happened, what you chose</th>' +
+      '<th scope="col" class="n">Change</th><th scope="col" class="n">Cash</th></tr></thead><tbody>';
+
+    if(!log.length){
+      rows += '<tr><td colspan="4">No days traded — the run ended before day 1.</td></tr>';
+    }
+    log.forEach(function(r, i){
+      rows += '<tr' + (i === pivot ? ' class="pivot"' : '') + '>' +
+        '<td class="d">' + r.day + '</td>' +
+        '<td class="what"><b>' + esc(r.event) + '</b>' +
+          (r.choice ? '<span>' + esc(r.choice) + '</span>' : '') + '</td>' +
+        '<td class="n ' + (r.delta >= 0 ? 'up' : 'down') + '">' +
+          (r.delta >= 0 ? "+" : "−") + rands(Math.abs(r.delta)) + '</td>' +
+        '<td class="n run' + (r.cash <= 0 ? ' broke' : '') + '">' + rands(r.cash) + '</td>' +
+      '</tr>';
+    });
+    $("endLedger").innerHTML = rows + '</tbody>';
+    revealIn($("endLedger").querySelectorAll("tbody tr"), { y:6, step:45, duration:340 });
+
+    $("endPivot").innerHTML = pivot < 0
+      ? "No single day broke you. The result is the sum of all of them."
+      : 'The day that cost you most was <strong>day ' + log[pivot].day + '</strong> — ' +
+        esc(log[pivot].event) + '. ' +
+        (log[pivot].choice ? 'You chose: <strong>' + esc(log[pivot].choice) + '</strong>. ' : '') +
+        rands(Math.abs(log[pivot].delta)) + ' gone in one decision.';
+  }
+
+  /* ---------- routing: real history entries so Back means back ---------- */
+  var SCREENS = { landing:"s-landing", profile:"s-profile", scan:"s-scan",
+                  plan:"s-plan", crisis:"s-crisis", end:"s-end" };
+  var STEP_OF = { profile:0, scan:1, plan:2, crisis:3, end:3 };
+
+  /* A stage is only enterable if the state it reads actually exists. Without
+     this, "#crisis" typed or bookmarked against a fresh save reached Stage 4
+     with state.biz === null, and deck()'s `|| CRISIS.spaza` silently handed the
+     player someone else's 14 days. The route now falls back to the last stage
+     the run has really earned. */
+  function reachable(stage){
+    switch(stage){
+      case "landing":
+      case "profile": return true;
+      case "scan":    return !!state.locked;
+      case "plan":    return !!state.locked && !!state.committedTo;
+      case "crisis":  return !!state.locked && !!state.committedTo &&
+                             Object.keys(state.plan).length === PLAN.length;
+      case "end":     return !!state.ended;
+      default:        return false;
+    }
+  }
+  function nearestReachable(stage){
+    var order = ["end","crisis","plan","scan","profile","landing"];
+    var from = order.indexOf(stage);
+    if(from < 0) return "landing";
+    for(var i = from; i < order.length; i++){ if(reachable(order[i])) return order[i]; }
+    return "landing";
+  }
+
+  function show(stage, push){
+    if(!SCREENS[stage]) stage = "landing";
+    if(!reachable(stage)) stage = nearestReachable(stage);
+    state.stage = stage;
+    Object.keys(SCREENS).forEach(function(k){
+      $(SCREENS[k]).classList.toggle("on", k === stage);
+    });
+    var idx = STEP_OF[stage] === undefined ? -1 : STEP_OF[stage];
+    [].forEach.call($("steps").children, function(li,i){
+      li.classList.toggle("done", idx > i);
+      if(i === idx) li.setAttribute("aria-current","step");
+      else li.removeAttribute("aria-current");
+    });
+    if(stage === "scan")   renderScan();
+    if(stage === "plan")   renderPlan();
+    if(stage === "crisis") renderCrisis();
+    if(push && location.hash !== "#" + stage){
+      history.pushState({ stage:stage }, "", "#" + stage);
+    }
+    var h = document.querySelector("#" + SCREENS[stage] + " h1, #" + SCREENS[stage] + " h2");
+    if(h){ h.setAttribute("tabindex","-1"); h.focus({ preventScroll:true }); }
+    window.scrollTo({ top:0, behavior:"smooth" });
+    save();
+  }
+
+  window.addEventListener("popstate", function(e){
+    show((e.state && e.state.stage) || "landing", false);
+  });
+
+  /* ---------- landing wiring ---------- */
+  function setMode(m){
+    state.mode = m;
+    $("m-learn").setAttribute("aria-pressed", String(m === "learn"));
+    $("m-play").setAttribute("aria-pressed",  String(m === "play"));
+    $("startBtn").textContent = "Start in " + (m === "learn" ? "Learn" : "Play") + " mode →";
+    save();
+  }
+  $("m-learn").addEventListener("click", function(){ setMode("learn"); });
+  $("m-play").addEventListener("click",  function(){ setMode("play");  });
+  $("startBtn").addEventListener("click", function(){ show("profile", true); });
+  $("revealBtn").addEventListener("click", function(){ if(left() === 0) showReveal(true); });
+  /* Committing capital never debited it. You picked a R2,200 salon and walked
+     into day 1 with the full R2,500 — which makes Stage 2 a quiz with no
+     consequence, in a game whose whole subject is what money costs. */
+  $("commitBtn").addEventListener("click", function(){
+    if(!state.biz) return;
+    var o = OPPS.filter(function(x){ return x.id === state.biz; })[0];
+    if(!o || !affordable(o)) return;
+    /* Back-button to Stage 2 and commit elsewhere: the 14 days belong to the
+       business you opened, so re-committing starts them over rather than
+       carrying another hustle's ledger into a new deck. */
+    if(state.committedTo && state.committedTo !== o.id){
+      state.day = 0; state.crisisScore = 0; state.resolved = false;
+      state.ended = false; state.log = [];
+    }
+    state.cash = opening(o);
+    state.setupCost = o.cost;
+    state.committedTo = o.id;
+    save();
+    say("Committed " + rands(o.cost) + " to " + o.name + ". " + rands(state.cash) + " left to trade with.");
+    show("plan", true);
+  });
+  $("planBtn").addEventListener("click", function(){
+    if(Object.keys(state.plan).length === PLAN.length) show("crisis", true);
+  });
+  $("againBtn").addEventListener("click", function(){
+    clearSave(); state = fresh(); boot(false); show("landing", true);
+  });
+
+  /* data-saver: the 1 MB loop is never fetched until asked */
+  $("playVid").addEventListener("click", function(){
+    var f = $("playVid").parentNode, poster = $("poster");
+    var v = document.createElement("video");
+    v.autoplay = true; v.loop = true; v.muted = true; v.playsInline = true;
+    v.setAttribute("preload","auto");
+    v.poster = poster.src;
+    v.style.cssText = "width:100%;height:100%;object-fit:cover;display:block";
+    v.src = "https://hustle-simulation.netlify.app/img/kwadream-loop.mp4";
+    v.addEventListener("error", function(){          // never fail silently
+      v.replaceWith(poster);
+    });
+    f.replaceChild(v, poster);
+    $("playVid").remove();
+  });
+
+  /* ---------- resume ---------- */
+  function offerResume(saved){
+    if(!saved) return;
+    var s = saved.s;
+    var meaningful = s.stage !== "landing" || s.locked || s.biz || spent0(s) !== MIN*4;
+    if(!meaningful) return;
+    var d = new Date(saved.at);
+    var where = { landing:"the start", profile:"Stage 1 · Build your hustle",
+                  scan:"Stage 2 · Scan the street", plan:"Stage 3 · Write the plan",
+                  crisis:"Stage 4 · Day " + (s.day + 1), end:"your result" }[s.stage] || "the start";
+    $("resumeWhere").textContent = where + " · saved " +
+      d.toLocaleDateString() + " " + d.toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" });
+    $("resume").classList.add("on");
+    $("resumeBtn").addEventListener("click", function(){
+      state = s;
+      if(!state.log) state.log = [];      /* tolerate a save written mid-day */
+      boot(false); show(state.stage, true);
+      $("resume").classList.remove("on");
+    });
+    $("freshBtn").addEventListener("click", function(){
+      clearSave(); $("resume").classList.remove("on");
+    });
+  }
+  function spent0(s){
+    return STATS.reduce(function(n,x){ return n + s.stats[x.k]; }, 0);
+  }
+
+  /* ---------- boot ---------- */
+  function boot(fromHash){
+    setMode(state.mode);
+    renderStats(); syncPool();
+    if(state.locked) showReveal();
+    if(fromHash){
+      show((location.hash || "#landing").slice(1), false);
+      history.replaceState({ stage:state.stage }, "", "#" + state.stage);
+    }
+  }
+
+  /* Read the save BEFORE anything can write one. boot() ends in setMode(),
+     which calls save() — so the previous order (fresh → boot → offerResume)
+     overwrote the saved run with a blank one microseconds before load() went
+     looking for it. Persistence was wired correctly and worked exactly never;
+     static checks confirmed localStorage was called, which is not the same
+     thing as confirming when. */
+  var savedRun = load();
+  state = fresh();
+  boot(true);
+  offerResume(savedRun);
+})();
+</script>
+</body>
+</html>

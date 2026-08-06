@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>HUSTLE — Leaf Flight Test (isolated prototype)</title>
+<meta name="theme-color" content="#14100D">
+
+<style>
+/* ============================================================
+   Leaf flight test — isolated, baby-step prototype. A crowd of
+   leaves (no tree yet), each with its own shape/size/speed/phase,
+   so shape + motion can be judged before touching the tree at all.
+
+   Design goals this file is testing:
+   1. Shape reads as "leaf" — flat, tapered, pointed, not a rock.
+      Built from a bent/twisted/creased plane, not a deformed sphere.
+   2. Matte material (roughness high, no metalness) — a different
+      surface language from the crystalline canopy facets.
+   3. Motion sells it: independent multi-axis tumble means the flat
+      face catches and loses the key light as it turns — that
+      light-flip IS the "falling leaf" read, not a decoration on top
+      of it. Path curves (wind + gentle gravity drop + lateral sway),
+      not a straight line to a vanishing point.
+   4. Nothing else in this scene moves. No tree yet.
+   ============================================================ */
+:root{ --ink:#14100D; --text-3:#A89480; }
+*{ box-sizing:border-box; }
+body{ margin:0; min-height:100dvh; background:var(--ink); overflow:hidden;
+  font-family:"Segoe UI",system-ui,sans-serif; }
+body::after{
+  content:""; position:fixed; inset:0; z-index:60; pointer-events:none;
+  opacity:.28; mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E");
+}
+#stage{ position:fixed; inset:0; }
+#stage canvas{ display:block; width:100%; height:100%; }
+.label{ position:fixed; left:1.4rem; bottom:1.4rem; z-index:5;
+  font-family:"JetBrains Mono",monospace; font-size:.7rem; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--text-3); }
+</style>
+</head>
+<body>
+
+<div id="stage"></div>
+<div class="label">12 leaves — flight test — isolated, no tree</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from "three";
+
+const stageEl = document.getElementById("stage");
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setClearColor(0x000000, 0);
+stageEl.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(46, 1, 1, 2000);
+camera.position.set(20, 15, 340);
+camera.lookAt(20, 15, 0);
+
+function resize(){
+  const w = stageEl.clientWidth, h = stageEl.clientHeight;
+  renderer.setSize(w, h);
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener("resize", resize);
+
+// ---------------------------------------------------------------
+// lighting — same logic as the tree: real key + rim light so the
+// leaf's own geometry produces the shading, nothing hand-painted
+// ---------------------------------------------------------------
+scene.add(new THREE.HemisphereLight(0x4a3a26, 0x0c0906, 0.5));
+const key = new THREE.DirectionalLight(0xffd8a8, 2.4);
+key.position.set(-120, 160, 140);
+scene.add(key);
+const rim = new THREE.DirectionalLight(0xe2571e, 1.0);
+rim.position.set(140, 40, -100);
+scene.add(rim);
+scene.add(new THREE.AmbientLight(0x3a2e24, 0.4));
+
+// ---------------------------------------------------------------
+// leaf geometry — a bent, twisted, creased plane. NOT a deformed
+// sphere/icosahedron. This is the core fix from the caterpillar/
+// rock-cluster attempt: the base unit itself has to be flat and
+// tapered to a point, because that's what reads as "leaf" even
+// before any material or motion is applied.
+// ---------------------------------------------------------------
+function buildLeafGeometry({
+  length = 34, maxWidth = 12, widthSegs = 8, lengthSegs = 14,
+  creaseDepth = 1.6, curlAmount = 3.2, twistAmount = 0.5, peakAt = 0.4,
+} = {}){
+  const geo = new THREE.PlaneGeometry(1, 1, widthSegs, lengthSegs);
+  const pos = geo.attributes.position;
+  for (let i = 0; i < pos.count; i++){
+    const xNorm = pos.getX(i);           // -0.5 .. 0.5 across width
+    const yNorm = pos.getY(i) + 0.5;     // 0 (stem) .. 1 (tip) along length
+
+    // width profile: widest around `peakAt`, tapering to a point at both ends
+    const shaped = Math.pow(Math.sin(Math.PI * Math.pow(yNorm, peakAt / 0.5 * 0.5 + 0.5)), 0.85);
+    const width = maxWidth * shaped;
+    const x = xNorm * width;
+
+    // midrib crease: shallow trough along the centerline, flat at the edges
+    const edgeFrac = Math.min(1, Math.abs(xNorm) * 2);
+    const crease = -creaseDepth * (1 - edgeFrac * edgeFrac) * shaped;
+
+    // gentle overall curl along the length (banana arch) + gravity droop at tip
+    const curl = curlAmount * Math.sin(yNorm * Math.PI * 0.9);
+
+    // slight twist: rotate the cross-section increasingly toward the tip
+    const twistAngle = twistAmount * yNorm;
+    const cz = crease + curl;
+    const rx = x * Math.cos(twistAngle) - cz * Math.sin(twistAngle);
+    const rz = x * Math.sin(twistAngle) + cz * Math.cos(twistAngle);
+
+    const y = (yNorm - 0.5) * length;
+    pos.setXYZ(i, rx, y, rz);
+  }
+  geo.computeVertexNormals();
+  return geo;
+}
+
+// deterministic pseudo-random, same pattern as the tree script —
+// reproducible variation instead of Math.random() jitter every reload
+function hash(n){
+  const s = Math.sin(n * 12.9898) * 43758.5453;
+  return s - Math.floor(s);
+}
+
+const palette = [0xc9922f, 0xe2571e, 0xf2a81c, 0xa85f22, 0xd9731b];
+
+const N_LEAVES = 12;
+const windDir = new THREE.Vector3(1, 0.05, 0.15).normalize();
+const leaves = [];
+
+for (let i = 0; i < N_LEAVES; i++){
+  // each leaf gets its own slightly different shape — real foliage
+  // is never one identical stamp repeated, and varying length/width/
+  // curl/twist per leaf is what keeps a crowd of them from reading
+  // as copy-pasted
+  const geo = buildLeafGeometry({
+    length: 24 + hash(i * 3.1) * 20,
+    maxWidth: 8 + hash(i * 5.7) * 8,
+    curlAmount: 2 + hash(i * 7.3) * 3,
+    twistAmount: 0.2 + hash(i * 2.9) * 0.7,
+    peakAt: 0.3 + hash(i * 4.4) * 0.3,
+  });
+  const mat = new THREE.MeshStandardMaterial({
+    color: palette[i % palette.length],
+    flatShading: true, roughness: 0.82, metalness: 0.02,
+    side: THREE.DoubleSide, transparent: true, opacity: 0,
+  });
+  const leaf = new THREE.Mesh(geo, mat);
+  scene.add(leaf);
+
+  leaves.push({
+    mesh: leaf,
+    spawn: new THREE.Vector3(
+      -130 + hash(i * 9.1) * 60,
+      -20 + hash(i * 6.6) * 90,
+      -60 + hash(i * 8.2) * 120
+    ),
+    life: 4.5 + hash(i * 1.7) * 3,
+    phase: hash(i * 5.3) * 20,
+    speed: 26 + hash(i * 3.8) * 22,
+    gravity: 4 + hash(i * 2.2) * 5,
+    swayAmp: 10 + hash(i * 6.1) * 14,
+    swayFreq: 1.1 + hash(i * 4.9) * 1.3,
+    rotRates: {
+      x: 0.8 + hash(i * 7.7) * 1.2,
+      y: 0.5 + hash(i * 8.8) * 1.0,
+      z: 1.0 + hash(i * 9.9) * 1.4,
+    },
+  });
+}
+
+// ---------------------------------------------------------------
+// flight: curved drift (wind + gentle gravity) + independent
+// multi-axis tumble at incommensurate rates so the light-flip
+// never looks mechanically repetitive. Each leaf loops on its own
+// life/phase so 12 leaves never move in lockstep.
+// ---------------------------------------------------------------
+const clock = new THREE.Clock();
+function frame(){
+  requestAnimationFrame(frame);
+  const t = clock.getElapsedTime();
+
+  leaves.forEach(({ mesh, spawn, life, phase, speed, gravity, swayAmp, swayFreq, rotRates }) => {
+    const age = (t + phase) % life;
+    const progress = age / life;
+    const dist = age * speed;
+    const drop = 0.5 * gravity * age * age * 0.12;
+    const sway = Math.sin(age * swayFreq) * swayAmp * progress;
+
+    mesh.position.set(
+      spawn.x + windDir.x * dist,
+      spawn.y + windDir.y * dist - drop + sway * 0.3,
+      spawn.z + windDir.z * dist + sway
+    );
+    mesh.rotation.x = age * rotRates.x;
+    mesh.rotation.y = age * rotRates.y;
+    mesh.rotation.z = age * rotRates.z * 0.7;
+
+    // fade in quickly, hold, fade out — never a hard pop in/out
+    mesh.material.opacity = Math.min(1, Math.sin(progress * Math.PI) * 1.6) * 0.92;
+  });
+
+  renderer.render(scene, camera);
+}
+
+resize();
+frame();
+</script>
+
+</body>
+</html>
