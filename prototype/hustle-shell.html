@@ -498,6 +498,11 @@ header.top.scrolled{
 /* portrait sits in the same top-right gutter the h3 padding reserves;
    the ✓ chosen badge (also top:0/right:0) has its own solid background,
    so it simply overlaps the portrait's corner when a card is selected. */
+/* shared load-fade for every art asset wired into the app: on a throttled
+   connection these should never pop in mid-render — reserve the box via
+   aspect-ratio/fixed size (each rule does its own) and only fade opacity. */
+.arch-portrait, .spot-art, #endArt{ opacity:0; transition:opacity .25s ease-out; }
+.arch-portrait.loaded, .spot-art.loaded, #endArt.loaded{ opacity:1; }
 .arch-portrait{
   position:absolute; top:0; right:0;
   width:4.5rem; height:4.5rem; object-fit:cover;
@@ -980,23 +985,27 @@ header.top.scrolled{
 /* the sticky dock overlays the last of the content — give every game
    screen room to scroll clear of it */
 #s-profile, #s-scan, #s-plan, #s-crisis{ padding-bottom:1rem; }
-/* Crisis backdrop: dawn/morning/day street photo behind the event card,
-   swapped by trading day. Gradient painted first in the background-image
-   list (so it sits over the photo) and never drops below ~92% opacity —
-   the project bans a plain translucent overlay div behind text, so the
-   scrim has to live inside this same background-image, not a sibling. */
-#s-crisis.crisis-dawn{
-  background-image:linear-gradient(#3E3050 0%, rgba(62,48,80,.92) 100%), url("images/street-dawn.webp");
-  background-size:cover; background-position:center;
+/* Crisis backdrop: dawn/morning/day street photo, swapped by trading day.
+   Revision: the first pass painted this as #s-crisis's own background,
+   scrimmed to ~92% opacity so it stayed safe behind the HUD/event text.
+   But .hud and .event are both fully opaque and cover nearly the whole
+   screen, so the photo was reduced to an imperceptible sliver in the
+   outer padding — the dawn-to-day narrative device never actually landed
+   on screen. This is a dedicated top band instead: full-strength photo,
+   no text ever placed over it (so the opacity rule doesn't even apply),
+   fading into the page background at its own bottom edge. */
+.crisis-backdrop{
+  height:140px; margin:0 0 1.2rem; border-radius:var(--r-lg);
+  background-size:cover; background-position:center; background-repeat:no-repeat;
+  position:relative; overflow:hidden;
 }
-#s-crisis.crisis-morning{
-  background-image:linear-gradient(#3E3050 0%, rgba(62,48,80,.92) 100%), url("images/street-morning.webp");
-  background-size:cover; background-position:center;
+.crisis-backdrop::after{
+  content:""; position:absolute; inset:0;
+  background:linear-gradient(transparent 45%, var(--ink));
 }
-#s-crisis.crisis-day{
-  background-image:linear-gradient(#3E3050 0%, rgba(62,48,80,.92) 100%), url("images/street-day.webp");
-  background-size:cover; background-position:center;
-}
+.crisis-backdrop.crisis-dawn{ background-image:url("images/street-dawn.webp"); }
+.crisis-backdrop.crisis-morning{ background-image:url("images/street-morning.webp"); }
+.crisis-backdrop.crisis-day{ background-image:url("images/street-day.webp"); }
 /* the two onboarding screens keep their board's own bottom padding, so the
    dock only needs to clear the board's rounded edge, not add space twice */
 #s-archetype .dock-row, #s-mode .dock-row{ margin-top:1rem; }
@@ -1173,19 +1182,19 @@ header.top.scrolled{
 
       <div class="arch-grid" id="archTrack" role="group" aria-label="Choose who you are">
         <button class="mode arch-card" data-arch="unemployed" aria-pressed="false">
-          <img class="arch-portrait" src="images/arch-unemployed.webp" alt="" loading="lazy">
+          <img class="arch-portrait" src="images/arch-unemployed.webp" alt="" onload="this.classList.add('loaded')">
           <h3>Looking for my shot</h3>
           <p>No job right now. R2,500 is what you've got, and this is what you do with it.</p>
           <span class="t">Most first-time learners start here</span>
         </button>
         <button class="mode arch-card" data-arch="employed" aria-pressed="false">
-          <img class="arch-portrait" src="images/arch-employed.webp" alt="" loading="lazy">
+          <img class="arch-portrait" src="images/arch-employed.webp" alt="" onload="this.classList.add('loaded')">
           <h3>Already working, want more</h3>
           <p>You've got a job. This is the side hustle you build around it.</p>
           <span class="t">For a second income, not a first one</span>
         </button>
         <button class="mode arch-card" data-arch="student" aria-pressed="false">
-          <img class="arch-portrait" src="images/arch-student.webp" alt="" loading="lazy">
+          <img class="arch-portrait" src="images/arch-student.webp" alt="" onload="this.classList.add('loaded')">
           <h3>Still studying, just curious</h3>
           <p>Not hustling yet. You want to know what it actually takes before you do.</p>
           <span class="t">No pressure, same R2,500</span>
@@ -1333,6 +1342,7 @@ header.top.scrolled{
 
   <!-- ================= STAGE 4 — CRISIS ================= -->
   <section class="screen" id="s-crisis" aria-labelledby="t-crisis">
+    <div class="crisis-backdrop" id="crisisBackdrop" aria-hidden="true"></div>
     <div class="stage-head"><span class="label">Stage 4 of 4</span></div>
     <h2 id="t-crisis">Survive the cash flow crisis</h2>
 
@@ -1363,7 +1373,7 @@ header.top.scrolled{
         <span class="verdict-stamp" id="endStamp" aria-hidden="true"></span>
       </div>
       <h2 id="t-end" class="sr">Your result</h2>
-      <img id="endArt" alt="">
+      <img id="endArt" alt="" onload="this.classList.add('loaded')">
       <p class="verdict" id="endTitle"></p>
       <p class="lede" id="endMsg"></p>
 
@@ -2026,7 +2036,7 @@ var CRISIS={"phonerepair":[[{"day":1,"type":"income","title":"Payday Rush!","des
                      (chosen ? " Currently selected." : " Activate to choose it.")
                    : "Not scanned yet. Activate to scan."));
       b.innerHTML =
-        '<img class="spot-art" src="images/stall-' + o.id + '.webp" alt="" loading="lazy">' +
+        '<img class="spot-art" src="images/stall-' + o.id + '.webp" alt="" loading="lazy" onload="this.classList.add(\'loaded\')">' +
         '<span class="spot-icon" aria-hidden="true">' + (ICONS[o.id] || '') + '</span>' +
         '<span class="where">' + esc(t.where) + '</span>' +
         '<span class="tag ' + sig.c + '">' + esc(sig.t) + '</span>' +
@@ -2252,7 +2262,7 @@ var CRISIS={"phonerepair":[[{"day":1,"type":"income","title":"Payday Rush!","des
 
     /* backdrop keyed on the 1-indexed trading day: 1-4 dawn, 5-9 morning,
        10-14 day. state.day is 0-indexed, so add 1 before banding. */
-    var crisisEl = $("s-crisis"), dayNum = d + 1;
+    var crisisEl = $("crisisBackdrop"), dayNum = d + 1;
     var backdropClass = dayNum <= 4 ? "crisis-dawn" : dayNum <= 9 ? "crisis-morning" : "crisis-day";
     if(crisisEl && !crisisEl.classList.contains(backdropClass)){
       crisisEl.classList.remove("crisis-dawn", "crisis-morning", "crisis-day");
