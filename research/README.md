@@ -8,6 +8,12 @@ meant to be actionable, not just a reading list.
 
 ## Topics
 
+- [Low-literacy & low-end-Android constraints](low-literacy-low-end-android.md) — RAM/data/reading-
+  level constraints that bind before any other design decision. Pull this first for any visual or
+  copy work; it sets the budget everything else spends against.
+- [Competitive teardown](competitive-teardown.md) — named products (business-sim games, African-
+  market fintech-literacy apps, low-end-Android onboarding) torn down for what to steal and what to
+  refuse. Pull this before designing a new mechanic or onboarding flow.
 - [Porter's Five Forces & strategy simulations](porters-five-forces-and-strategy.md) — how
   business-strategy sims teach competitive analysis experientially; HUSTLE's Scanner already
   has 2 of the 5 forces, unlabeled. Pull this when working on Stage 2 (Scanner) depth.
