@@ -41,15 +41,14 @@ required practice rather than an implied one.
   and 2026-08-05 ones critique this prototype directly and supersede the bundle-era findings).
   Also read `~/.claude/knowledge/design/frontend-lessons.md` before UI work — anti-slop bans,
   contrast rules, motion rules, portable across projects.
-- **No standing test environment exists yet** — checked 2026-08-11: no `package.json`,
-  no Playwright install/config, no committed or scratchpad automation scripts anywhere
-  in this project. `TESTING.md` describes the required verification standard, not a
-  built harness — every prior verification pass (Phase 1, 2.5, Sunrise) was done ad hoc
-  in-session, with no register surviving between sessions. Building this (Playwright +
-  `TESTING.md`'s viewport matrix, pointed at `prototype/hustle-shell.html`) should
-  happen before or alongside the next `prototype/hustle-shell.html` change, since
-  `TESTING.md`'s rule requires render-verification for every such change. See
-  `TESTING.md` → "Environment status" for detail.
+- **Standing test environment built 2026-08-11** — Playwright harness (`package.json`,
+  `playwright.config.js`, `tests/smoke.spec.js`), run via `npx playwright test`.
+  Smoke-tier coverage only (launch/console errors, landing visibility, primary-CTA
+  clickability) across the three-viewport matrix; 9/9 passing. Deeper per-stage journey
+  coverage (archetype → Scanner → Plan → Crisis → Ending → persistence) is **not yet
+  written** — extend as Phase 2 items below touch those stages. See `TESTING.md` →
+  "Environment status" for detail, including a real bug the harness caught on its
+  first run (an a11y skip-link false-positiving as the landing page's primary CTA).
 - Known gap, confirmed by the 2026-08-05 critique: **the prototype looks authored but plays
   mechanically inert** — Stage 1's stat/archetype choices don't branch anything, and
   Crisis/Plan scoring is invisible until the very end. This is the throughline the next two

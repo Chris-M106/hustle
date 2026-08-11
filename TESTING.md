@@ -13,17 +13,30 @@
 > it actually behaves on a touch device under real constraints — not in whether its source
 > reads correctly.
 
-## Environment status (added 2026-08-11)
+## Environment status (added 2026-08-11, built same day)
 
-**This file describes the required standard, not a built environment.** Checked
-2026-08-11: no `package.json`, no Playwright install/config, and no committed or
-scratchpad automation scripts exist anywhere in this project — `git log` shows only
-art/docs commits. Phase 1, 2.5, and the Sunrise passes referenced above as prior
-verification work were done via manual/ad hoc browser sessions in earlier chat
-sessions, not a standing automated harness — no register of that setup survived
-between sessions. See `ROADMAP.md` → "Where this stands right now" for the open
-tracking item. Setting this up (Playwright + the viewport matrix below, pointed at
-`prototype/hustle-shell.html`) is unstarted work, not a rediscovered thing.
+**A standing Playwright harness now exists** — `package.json`, `playwright.config.js`,
+`tests/smoke.spec.js`, chromium installed via `npx playwright install`. Run with
+`npx playwright test` from the project root; serves `prototype/` on `127.0.0.1:4173`
+via `http-server` (auto-started by Playwright's `webServer` config) and runs against
+all three matrix viewports below (`android-360x640`, `android-412x915`,
+`desktop-1280`).
+
+Current coverage is a smoke tier only — launch/console-error check, landing-screen
+visibility, and a real trial-click on the primary CTA (item 1 of the "Automated
+coverage" priority list below). Items 2-8 (archetype through state persistence) are
+**not yet written** — extend `tests/smoke.spec.js` or add new spec files per journey
+as Phase 2 work touches those stages.
+
+One real bug the harness caught immediately: the first draft of the "clickable
+primary control" test picked up the `.skip` accessibility skip-link (visible per
+Playwright's definition, positioned off-screen until focused) as the landing page's
+"first visible button," and the trial-click timed out because that element sits
+outside the viewport. Fixed by excluding `.skip` from the selector — a live example of
+this file's own point: a DOM-present element is not automatically a genuinely
+interactive one, and only running against the actual render surfaces that gap.
+
+9/9 tests passing across all three viewport projects as of 2026-08-11.
 
 ## The two standing rules
 

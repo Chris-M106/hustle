@@ -1,0 +1,25 @@
+{
+  "name": "hustle-test-env",
+  "version": "1.0.0",
+  "description": "Playwright test harness for HUSTLE prototype (not the product)",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Chris-M106/hustle.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Chris-M106/hustle/issues"
+  },
+  "homepage": "https://github.com/Chris-M106/hustle#readme",
+  "private": "true",
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "http-server": "^14.1.1"
+  }
+}
