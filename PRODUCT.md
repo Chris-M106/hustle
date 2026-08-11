@@ -6,9 +6,34 @@
 > the framing on the landing page. Items marked **[assumed]** were not verifiable and need
 > confirmation from whoever owns the curriculum.
 
+## Product target vs. current implementation
+
+> Added 2026-08-08 to make an implicit assumption explicit and authoritative. See `TESTING.md`
+> for the testing practice this entails and `ROADMAP.md` Phase 4 for the reuse-vs-rebuild
+> question this creates.
+
+**HUSTLE is a mobile application.** Not a responsive website, not a browser game, not a
+mobile-friendly website — a genuine mobile application, designed primarily for **low-end
+Android + prepaid/limited data + possibly a shared device** (the constraints `## Who it is for`
+and `## Constraints that actually bind` below already establish). The quality bar is "I am
+using the HUSTLE app," not "I opened a website on my phone."
+
+The current `prototype/hustle-shell.html` — a single-file vanilla-JS browser build — is the
+**prototype/implementation stage**, not the final product definition. Mobile web hosted the
+prototype because it's the fastest way to iterate on the game design and visual system
+(`DESIGN.md`); that choice does not commit the shipped product to a browser. **The production
+platform decision is made — see `ARCHITECTURE.md`: React Native, Android-first** — but migration
+itself hasn't started; the prototype remains the active surface for design/content iteration
+until a real-device-validated vertical slice exists (`ARCHITECTURE.md` §11).
+
+Desktop/web access may remain useful for development and secondary reach, but it does not
+define the primary UX. Design and evaluate mobile-first — start from the phone, don't shrink a
+desktop layout down to one.
+
 ## What it is
 
-A browser-based simulation game that teaches new venture creation. The player is an
+A simulation game that teaches new venture creation, currently prototyped as a browser build
+(see `## Product target vs. current implementation` above). The player is an
 unemployed youth in KwaDream, a South African township, starting with **R2,500**. The game
 runs four stages:
 

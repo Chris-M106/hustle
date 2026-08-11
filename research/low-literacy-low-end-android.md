@@ -9,6 +9,11 @@
 > from a primary or reputable secondary source, it is marked **[assumed]** — the same
 > convention `PRODUCT.md` uses. Measurements of HUSTLE's own payload were taken directly from
 > `prototype/` on 2026-08-06 (`wc -c` and `gzip -9`), not estimated.
+>
+> Cross-reference, added 2026-08-08: this page defines the *constraints*; `TESTING.md` defines
+> *how to verify the build against them* (throttled network probes, real-device validation
+> hierarchy, viewport matrix) and `PRODUCT.md` states HUSTLE's platform target (mobile
+> application, not a website) that makes these constraints binding in the first place.
 
 ---
 

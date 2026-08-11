@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 160" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M40 60 L140 60 L130 130 L50 130 Z M60 60 L65 30 L115 30 L120 60 M55 130 L55 145 M125 130 L125 145 M150 130 H180 V115 H150 Z"/>
+</svg>
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 160" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M80 30 V140 H160 V30 H140 H100 Z M110 30 V20 H130 V30 M170 80 L190 70 L90 50 L70 60 Z"/>
+</svg>
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 160" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M40 30 H200 V130 H40 Z M120 30 V130 M60 50 H100 M60 70 H100 M60 90 H100 M140 50 H180 M140 70 H180 M140 90 H180"/>
+</svg>

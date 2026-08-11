@@ -36,6 +36,12 @@ meant to be actionable, not just a reading list.
   (`state.log`), it just never resurfaces the log until the very end. The single
   highest-leverage fix from this whole research pass. Pull this first for almost any
   "make it feel like a game" or critical-thinking work.
+- [The real-world bridge](real-world-bridge.md) — does finishing HUSTLE leave a player able to
+  act in real life, not just explain the simulation? Maps the real SA micro-business journey
+  against what HUSTLE's 4 stages teach today, and defines the authoritative post-game model: a
+  KNOWN/ASSUMED/UNKNOWN/TESTED/LEARNED knowledge-state architecture, a single business
+  hypothesis, one real-world test, and a future (not-yet-built) LEARN/return loop. Pull this
+  before touching the Ending screen or anything past Day 14.
 
 ## How this wiki started
 

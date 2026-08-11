@@ -65,7 +65,7 @@ nobody authorised it as new content. Regenerate to the original print/copy/CV br
 Digital painting, illustrative-realist, visible brushwork, slight canvas tooth. Not photography, not 3D, not flat vector. KwaDream township setting — corrugated iron, pallet wood, breeze block, red-brown earth, power lines, painted houses on the hillside behind. Palette anchors #3E3050, #5A415C, #F2941C, #FDB74D, #FFC98A, #6B4630, #F5F0FA, orange the only hot accent. One low warm sun, long directional shadows. Three-quarter view slightly below eye level, subject fills the left two-thirds, right third falls to a soft out-of-focus street, sun low-left ~25°, thin warm sky band fading to #5A415C at the corners.
 
 A small print and copy shop in a converted shipping container, mid-morning. A desktop multifunction printer on a laminate counter, its output tray holding a short stack of blank paper. Behind the counter, a woman in a purple blouse working at an old desktop computer, its screen turned away from us so nothing on it is visible. A laminating machine, a guillotine cutter, and a wall rack of blank coloured card stock. A customer's forearm and hand rest on the near edge of the counter, the rest of them out of frame. Low sun through the container's open door lands in a hard bright rectangle across the counter and the paper stack.
-
+s bot
 Avoid: readable screen content, printer brand logos, sample documents with text, CV templates visible, posters, price list, Microsoft or Adobe interfaces, watermark, text anywhere in frame, alcohol, beer, beer bottles, cooler box, bar counter, tavern, liquor of any kind.
 ```
 
@@ -77,7 +77,7 @@ Avoid: readable screen content, printer brand logos, sample documents with text,
 and the words "SUCCESS" / caption text baked into the image. Spec called for a photographic scene
 only — the tier is already communicated by the existing `.verdict-stamp` CSS component
 (`sign-yellow`/`survive-green`/`enamel-orange`/`bad-text`), so baking a second, redundant, untranslatable
-verdict indicator into the art is both a spec miss and a `DESIGN.md` violation (emoji-as-icon-system is
+verdict indicator into the art ih a spec miss and a `DESIGN.md` violation (emoji-as-icon-system is
 explicitly banned there).
 
 ```

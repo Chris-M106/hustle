@@ -13,11 +13,30 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://hustle-simulation.netlify.app/images/og-card.webp">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%23F2941C'/%3E%3Ctext x='50' y='72' font-size='62' font-family='Arial Black,sans-serif' font-weight='900' text-anchor='middle' fill='%233E3050'%3EH%3C/text%3E%3C/svg%3E">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-
 <style>
+/* Vendored locally — was fetched live from fonts.googleapis.com/fonts.gstatic.com,
+   the one dependency in this file that still hit a third-party origin, on an
+   audience whose product doc calls a CDN fetch "a way for the game to simply not
+   work" (same reasoning GSAP/three.js were already vendored for). Google serves a
+   single variable-weight woff2 per family when it detects a modern UA, which is
+   why one file covers all four Archivo weights and both JetBrains Mono weights
+   used here — latin subset only, no unused glyph ranges. 84,972 B raw for all
+   three families/weights combined, comparable to the CDN fetch it replaces, but
+   same-origin, cacheable with the rest of the app, and works with no network at
+   all on a warm cache. */
+@font-face{
+  font-family:"Anton"; font-style:normal; font-weight:400; font-display:swap;
+  src:url("vendor/fonts/anton-v27-latin-400.woff2") format("woff2");
+}
+@font-face{
+  font-family:"Archivo"; font-style:normal; font-weight:400 700; font-display:swap;
+  src:url("vendor/fonts/archivo-v25-latin-400-700.woff2") format("woff2");
+}
+@font-face{
+  font-family:"JetBrains Mono"; font-style:normal; font-weight:500 700; font-display:swap;
+  src:url("vendor/fonts/jetbrains-mono-v24-latin-500-700.woff2") format("woff2");
+}
+
 /* ============================================================
    HUSTLE — Sunrise world. Replaces the brown/bitumen Painted
    Signboard palette outright, per direction: "we need to use
@@ -96,6 +115,18 @@
 
 *,*::before,*::after{ box-sizing:border-box; }
 html{ scroll-behavior:smooth; -webkit-text-size-adjust:100%; }
+
+/* Root cause of a real tap-race, found via live touch testing (not source
+   review): every interactive control here is a native <button>, and none
+   declared touch-action. Without it, mobile Chrome holds each tap for a
+   double-tap-zoom disambiguation window before synthesizing `click` — so a
+   fast second tap (e.g. select an archetype card, immediately tap Continue)
+   can land on a button before the FIRST tap's click handler has run and
+   enabled it. The second tap then hits a still-disabled <button disabled>,
+   which fires no click at all, and the user sees nothing happen. This is
+   not screen-specific: it's every button in the app. `manipulation` removes
+   the disambiguation wait, so click fires immediately after touchend. */
+button, a{ touch-action:manipulation; }
 
 body{
   margin:0;
@@ -946,14 +977,12 @@ header.top.scrolled{
 
 /* ---- 1. thumb dock ----------------------------------------------
    The primary action on a game screen has to be where the thumb
-   already is. These four rows are sticky to the bottom of the
-   viewport, bleeding to the screen edge and clearing the iOS home
-   indicator, so the CTA is reachable at any scroll position without
-   ever leaving the document flow (no fixed overlay to fight with the
-   keyboard or with a short screen). Deliberately not applied to the
-   ending's .row: that board is overflow:hidden, sticky is inert
-   inside it, and the ending is a read, not a play. */
-#s-archetype .dock-row, #s-mode .dock-row,
+   already is. Sticky-to-bottom on Profile/Scan/Plan/Crisis, which are
+   long enough that "reachable at any scroll position" is a real win.
+   Archetype and Mode are deliberately NOT in this sticky group — see
+   the .dock-row rule further down for why. Deliberately not applied to
+   the ending's .row either: that board is overflow:hidden, sticky is
+   inert inside it, and the ending is a read, not a play. */
 #s-profile .dock-row, #s-scan .row, #s-plan .row, #s-crisis .row{
   position:sticky; bottom:0; z-index:25;
   margin-left:-1rem; margin-right:-1rem;
@@ -970,6 +999,31 @@ header.top.scrolled{
 #s-profile .dock-row > *, #s-scan .row > *, #s-plan .row > *, #s-crisis .row > *{
   pointer-events:auto;
 }
+/* Archetype and Mode keep the dock's padding/gradient band but WITHOUT
+   position:sticky — confirmed live (Playwright, real touch + mouse, all
+   three target viewports) that sticky here was the actual bug, not a
+   timing race: both screens are short (3 cards / 2 cards, no scrollable
+   form content), so their total height barely exceeds the viewport. A
+   sticky bottom:0 element is pinned the instant its normal-flow position
+   would fall below the viewport — which happens at scroll position ZERO
+   on a screen this short — so the dock was permanently glued over the
+   LAST card's lower half from first paint, not just after scrolling.
+   Measured overlap at 360x640: 56px, landing exactly on the card's own
+   geometric center, so `elementFromPoint` there resolved to the (often
+   disabled) Continue button instead of the card — a tap meant to select
+   the card silently hit the button and did nothing. Padding-bottom on
+   the section (an earlier, wrong attempt at this fix) cannot solve this:
+   it only extends scrollable space AFTER the sticky element, it doesn't
+   change when sticky's pinned state activates. Static positioning does:
+   with no sticky, the dock is simply the next thing in document flow
+   after the cards, so it can never overlap them, on any viewport. */
+#s-archetype .dock-row, #s-mode .dock-row{
+  position:static;
+  margin-left:-1rem; margin-right:-1rem;
+  padding:.9rem 1rem calc(.9rem + env(safe-area-inset-bottom, 0px));
+  background:linear-gradient(180deg,
+    rgba(62,48,80,0) 0%, rgba(62,48,80,.86) 38%, var(--ink) 78%);
+}
 /* The disabled CTA is deliberately a transparent dashed outline (see
    DESIGN.md) — which works on a card and fails in a dock, where the page
    scrolls underneath and the missing-requirement label ends up printed
@@ -983,7 +1037,9 @@ header.top.scrolled{
    would otherwise leave a floating gradient band over nothing */
 #s-profile .dock-row:has(> button[hidden]){ display:none; }
 /* the sticky dock overlays the last of the content — give every game
-   screen room to scroll clear of it */
+   screen room to scroll clear of it. Archetype/Mode don't need this:
+   their dock is no longer sticky (see above), so it can't overlay
+   anything regardless of viewport height. */
 #s-profile, #s-scan, #s-plan, #s-crisis{ padding-bottom:1rem; }
 /* Crisis backdrop: dawn/morning/day street photo, swapped by trading day.
    Revision: the first pass painted this as #s-crisis's own background,
@@ -1006,8 +1062,6 @@ header.top.scrolled{
 .crisis-backdrop.crisis-dawn{ background-image:url("images/street-dawn.webp"); }
 .crisis-backdrop.crisis-morning{ background-image:url("images/street-morning.webp"); }
 .crisis-backdrop.crisis-day{ background-image:url("images/street-day.webp"); }
-/* the two onboarding screens keep their board's own bottom padding, so the
-   dock only needs to clear the board's rounded edge, not add space twice */
 #s-archetype .dock-row, #s-mode .dock-row{ margin-top:1rem; }
 
 /* ---- 2. damage numbers ------------------------------------------
@@ -2795,6 +2849,14 @@ var CRISIS={"phonerepair":[[{"day":1,"type":"income","title":"Payday Rush!","des
     if(state.committedTo && state.committedTo !== o.id){
       state.day = 0; state.crisisScore = 0; state.resolved = false;
       state.ended = false; state.log = [];
+      /* Confirmed live (Playwright): re-committing to a different business
+         reset the crisis state above but left state.plan untouched, so the
+         Plan screen kept showing the OLD venture's 5 answers as "answered"
+         — including an already-enabled "Open the 14 days →" — with no
+         re-confirmation. A plan written for a phone-repair kiosk was
+         silently graded as the plan for a spaza shop. The plan belongs to
+         the business the same way the 14 days do. */
+      state.plan = {};
     }
     state.cash = opening(o);
     state.setupCost = o.cost;
@@ -2921,300 +2983,240 @@ var CRISIS={"phonerepair":[[{"day":1,"type":"income","title":"Payday Rush!","des
 <!-- ---------------------------------------------------------------
      Leaf-drift layer — ported from yellowwood-emblem.html, now inside
      the full-bleed hero rather than a boxed panel; continuous ambient
-     drift, no scroll coupling. The camera/geometry/silhouette-table
-     code is otherwise verbatim — calibrated to the photo's own
-     percentage space, which doesn't change with the box around it.
+     drift, no scroll coupling. The silhouette-table and per-leaf spawn/
+     wind/sway/gust physics are otherwise verbatim — calibrated to the
+     photo's own percentage space, which doesn't change with the box
+     around it.
 
-     three.js is vendored locally rather than pulled from unpkg: an
-     unbundled CDN import is an uncached, third-party network request
-     on every load, on an audience whose megabytes are their own money
-     (see PRODUCT.md). vendor/three.module.min.js is NOT the stock
-     build — it's an esbuild --bundle --minify --tree-shaking=true
-     pass keeping only the exports this file actually calls
-     (WebGLRenderer, Scene, OrthographicCamera, DirectionalLight,
-     AmbientLight, PlaneGeometry, MeshStandardMaterial, Mesh,
-     DoubleSide, Group, Color, Vector3, Clock) — 468KB vs three.js
-     0.160.0's stock minified ESM build at 670KB. Rebuild with the
-     same esbuild command plus this export list if the leaf system
-     ever needs another symbol from three. -->
-<script type="importmap">
-{ "imports": { "three": "./vendor/three.module.min.js" } }
-</script>
-<script type="module">
-import * as THREE from "three";
+     Rewritten 2026-08-08 from a three.js/WebGL implementation to plain
+     Canvas2D. That version cost 117KB gzipped (468KB raw) for the
+     three.js runtime alone plus 164 individually-lit 3D meshes (one
+     draw call each — over 3x research/low-literacy-low-end-android.md's
+     own <=50-draw-call guidance for this device class), sustained every
+     frame the landing page was open. Measured on screen, each leaf
+     renders at roughly 1-3px — real-time 3D crease/curl/twist geometry
+     and per-vertex lighting were being computed for detail no eye could
+     resolve at that size. This version reuses the exact same tuned
+     spawn/motion math (same hash()-seeded seeds, same silhouette-based
+     occlusion trick) and draws each leaf as a single filled, color-
+     lerped, rotated ellipse — same visual read, zero added library
+     weight, no sustained WebGL cost on a GPU class flagged as a
+     SwiftShader-software-fallback risk. See git history for the
+     three.js version if the effect ever needs true 3D depth again. -->
+<script>
+(function(){
+  "use strict";
+  var canvasEl = document.getElementById("leafCanvas");
+  var treeWrapEl = document.getElementById("treeWrap");
+  var treeMediaEl = document.getElementById("hero");
+  var ctx = canvasEl.getContext("2d");
+  if (!ctx) return;
 
-const canvasEl = document.getElementById("leafCanvas");
-const treeWrapEl = document.getElementById("treeWrap");
-const treeMediaEl = document.getElementById("hero");
+  var PHOTO_ASPECT = 1672 / 941;
+  var boxW = 0, boxH = 0; /* CSS px, recomputed on resize */
 
-const renderer = new THREE.WebGLRenderer({ canvas: canvasEl, antialias: true, alpha: true });
-renderer.setClearColor(0x000000, 0);
-
-const scene = new THREE.Scene();
-
-// orthographic camera, -50..50 on both axes, deliberately never
-// re-aspected — world x/y map linearly to 0-100% of treeWrap's own
-// box, so spawn points below are tuned as plain percentages of the
-// actual photo regardless of this panel's aspect ratio.
-const camera = new THREE.OrthographicCamera(-50, 50, 50, -50, 1, 500);
-camera.position.set(0, 0, 200);
-camera.lookAt(0, 0, 0);
-
-function pctToWorld(pctX, pctY){
-  return { x: pctX - 50, y: 50 - pctY };
-}
-
-const PHOTO_ASPECT = 1672 / 941;
-
-// real `background-size: cover` sizing against the full-bleed .hero
-// panel — computed once per resize, not per frame.
-function coverSize(){
-  const boxW = treeMediaEl.clientWidth, boxH = treeMediaEl.clientHeight;
-  const boxAspect = boxW / boxH;
-  let w, h;
-  if (boxAspect > PHOTO_ASPECT){ w = boxW; h = w / PHOTO_ASPECT; }
-  else { h = boxH; w = h * PHOTO_ASPECT; }
-  treeWrapEl.style.width = w + "px";
-  treeWrapEl.style.height = h + "px";
-}
-
-function resize(){
-  coverSize();
-  const w = treeWrapEl.clientWidth, h = treeWrapEl.clientHeight;
-  renderer.setSize(w, h, false);
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-}
-window.addEventListener("resize", resize);
-
-const key = new THREE.DirectionalLight(0xffd7c2, 2.0);
-key.position.set(0, 10, 40);
-scene.add(key);
-const fill = new THREE.AmbientLight(0x5a415c, 0.55);
-scene.add(fill);
-
-function hash(n){
-  const s = Math.sin(n * 12.9898) * 43758.5453;
-  return s - Math.floor(s);
-}
-
-function buildLeafGeometry({
-  length = 4, maxWidth = 1.5, widthSegs = 6, lengthSegs = 8,
-  creaseDepth = 0.2, curlAmount = 0.4, twistAmount = 0.5, peakAt = 0.4,
-} = {}){
-  const geo = new THREE.PlaneGeometry(1, 1, widthSegs, lengthSegs);
-  const pos = geo.attributes.position;
-  for (let i = 0; i < pos.count; i++){
-    const xNorm = pos.getX(i);
-    const yNorm = pos.getY(i) + 0.5;
-    const shaped = Math.pow(Math.sin(Math.PI * Math.pow(yNorm, peakAt / 0.5 * 0.5 + 0.5)), 0.85);
-    const width = maxWidth * shaped;
-    const x = xNorm * width;
-    const edgeFrac = Math.min(1, Math.abs(xNorm) * 2);
-    const crease = -creaseDepth * (1 - edgeFrac * edgeFrac) * shaped;
-    const curl = curlAmount * Math.sin(yNorm * Math.PI * 0.9);
-    const twistAngle = twistAmount * yNorm;
-    const cz = crease + curl;
-    const rx = x * Math.cos(twistAngle) - cz * Math.sin(twistAngle);
-    const rz = x * Math.sin(twistAngle) + cz * Math.cos(twistAngle);
-    const y = (yNorm - 0.5) * length;
-    pos.setXYZ(i, rx, y, rz);
+  function coverSize(){
+    var w = treeMediaEl.clientWidth, h = treeMediaEl.clientHeight;
+    var boxAspect = w / h;
+    if (boxAspect > PHOTO_ASPECT){ boxW = w; boxH = w / PHOTO_ASPECT; }
+    else { boxH = h; boxW = h * PHOTO_ASPECT; }
+    treeWrapEl.style.width = boxW + "px";
+    treeWrapEl.style.height = boxH + "px";
   }
-  geo.computeVertexNormals();
-  return geo;
-}
+  function resize(){
+    coverSize();
+    /* research/low-literacy-low-end-android.md's own GPU guidance: cap
+       devicePixelRatio at 1.5 for decorative effects on entry-level GPUs
+       (tighter than the three.js version's min(dpr,2)) */
+    var dpr = Math.min(devicePixelRatio || 1, 1.5);
+    canvasEl.width = Math.round(boxW * dpr);
+    canvasEl.height = Math.round(boxH * dpr);
+    canvasEl.style.width = boxW + "px";
+    canvasEl.style.height = boxH + "px";
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  window.addEventListener("resize", resize);
 
-// canopy silhouette — real pixel-scanned left/right bounds at
-// 2%-height steps (yellowwood-sunrise-wide.png, 1672x941), not an
-// idealized ellipse. See yellowwood-emblem.html for how this table
-// was derived.
-const SILHOUETTE = [
-  [33, 48.3, 51.4], [35, 46.9, 53.7], [37, 45.7, 54.3], [39, 44.8, 56.0],
-  [41, 43.7, 56.4], [43, 42.7, 57.8], [45, 41.4, 59.0], [47, 41.2, 59.2],
-  [49, 40.9, 60.0], [51, 39.7, 60.3], [53, 40.3, 61.0], [55, 38.6, 61.2],
-  [57, 39.8, 59.7], [59, 39.9, 62.1], [61, 38.2, 60.9], [63, 38.9, 61.5],
-  [65, 38.9, 57.2],
-];
-function silhouetteAt(py){
-  const clamped = Math.max(SILHOUETTE[0][0], Math.min(SILHOUETTE[SILHOUETTE.length - 1][0], py));
-  for (let i = 0; i < SILHOUETTE.length - 1; i++){
-    const [y0, l0, r0] = SILHOUETTE[i], [y1, l1, r1] = SILHOUETTE[i + 1];
-    if (clamped >= y0 && clamped <= y1){
-      const t = (clamped - y0) / (y1 - y0);
-      return { left: l0 + (l1 - l0) * t, right: r0 + (r1 - r0) * t };
+  function hash(n){
+    var s = Math.sin(n * 12.9898) * 43758.5453;
+    return s - Math.floor(s);
+  }
+
+  /* canopy silhouette — unchanged from the three.js version: real
+     pixel-scanned left/right bounds at 2%-height steps. */
+  var SILHOUETTE = [
+    [33, 48.3, 51.4], [35, 46.9, 53.7], [37, 45.7, 54.3], [39, 44.8, 56.0],
+    [41, 43.7, 56.4], [43, 42.7, 57.8], [45, 41.4, 59.0], [47, 41.2, 59.2],
+    [49, 40.9, 60.0], [51, 39.7, 60.3], [53, 40.3, 61.0], [55, 38.6, 61.2],
+    [57, 39.8, 59.7], [59, 39.9, 62.1], [61, 38.2, 60.9], [63, 38.9, 61.5],
+    [65, 38.9, 57.2]
+  ];
+  function silhouetteAt(py){
+    var clamped = Math.max(SILHOUETTE[0][0], Math.min(SILHOUETTE[SILHOUETTE.length-1][0], py));
+    for (var i = 0; i < SILHOUETTE.length - 1; i++){
+      var y0=SILHOUETTE[i][0], l0=SILHOUETTE[i][1], r0=SILHOUETTE[i][2];
+      var y1=SILHOUETTE[i+1][0], l1=SILHOUETTE[i+1][1], r1=SILHOUETTE[i+1][2];
+      if (clamped >= y0 && clamped <= y1){
+        var t = (clamped - y0) / (y1 - y0);
+        return { left: l0 + (l1-l0)*t, right: r0 + (r1-r0)*t };
+      }
+    }
+    return { left:44, right:56 };
+  }
+  var SIL_TOP = SILHOUETTE[0][0], SIL_BOTTOM = SILHOUETTE[SILHOUETTE.length-1][0];
+  var SIL_MAX_RIGHT = Math.max.apply(null, SILHOUETTE.map(function(r){ return r[2]; }));
+  /* pct-space directly (the three.js version's world-space BEHIND_REVEAL_X
+     shifted by -50; pct-space needs no such shift) */
+  var BEHIND_REVEAL_PCT = SIL_MAX_RIGHT - 3;
+
+  var BASE_WIND = { x:1, y:0.15 };
+  var LIT_COLORS  = [[255,207,158],[238,170,114],[254,200,153],[255,220,176]];
+  var DARK_COLORS = [[62,48,80],[71,52,86],[76,58,87],[90,65,92]];
+
+  var leaves = [];
+  function makeLeaf(opts){
+    return {
+      length: opts.length, maxWidth: opts.maxWidth,
+      dark: DARK_COLORS[opts.colorSeed % DARK_COLORS.length],
+      lit:  LIT_COLORS[opts.colorSeed % LIT_COLORS.length]
+    };
+  }
+
+  var N_WIND = 150;
+  for (var i = 0; i < N_WIND; i++){
+    var py = SIL_TOP + hash(i*9.1) * (SIL_BOTTOM - SIL_TOP);
+    var sil = silhouetteAt(py), margin = 1.2;
+    var px = (sil.left + margin) + hash(i*2.3+4.1) * Math.max(0, (sil.right-sil.left) - margin*2);
+
+    var leaf = makeLeaf({
+      length: 0.15 + hash(i*3.1)*0.19,
+      maxWidth: 0.06 + hash(i*5.7)*0.07,
+      colorSeed: i
+    });
+    var windAngle = (hash(i*11.3+1) - 0.5) * 0.9;
+    var cosA = Math.cos(windAngle), sinA = Math.sin(windAngle);
+    var rowCenter = (sil.left+sil.right)/2, rowHalfWidth = (sil.right-sil.left)/2;
+    var nearCenter = Math.abs(px - rowCenter) < rowHalfWidth * 0.35;
+
+    leaf.behind = nearCenter;
+    leaf.spawnX = px; leaf.spawnY = py;
+    leaf.life = 7 + hash(i*1.7)*5;
+    leaf.phase = hash(i*5.3)*24;
+    leaf.speed = 2.2 + hash(i*3.8)*2.4;
+    leaf.gravity = 0.3 + hash(i*2.2)*0.5;
+    leaf.windDir = { x: BASE_WIND.x*cosA - BASE_WIND.y*sinA, y: BASE_WIND.x*sinA + BASE_WIND.y*cosA };
+    leaf.swayAmp = 2.2 + hash(i*6.1)*2.8;
+    leaf.swayFreq = 0.5 + hash(i*4.9)*0.7;
+    leaf.gustAmp = 0.7 + hash(i*8.4)*1.1;
+    leaf.gustFreq = 1.8 + hash(i*3.6)*1.8;
+    leaf.gustPhase = hash(i*7.1)*20;
+    leaf.rotX = 0.8 + hash(i*7.7)*1.2;
+    leaf.rotZ = 1.0 + hash(i*9.9)*1.4;
+    leaves.push(leaf);
+  }
+
+  var N_SUN = 14;
+  for (var j = 0; j < N_SUN; j++){
+    var py2 = SIL_BOTTOM - hash(j*5.5)*6;
+    var sil2 = silhouetteAt(py2);
+    var px2 = sil2.left + 0.6 + hash(j*8.8)*3;
+
+    var leaf2 = makeLeaf({
+      length: 0.15 + hash(j*3.4)*0.19,
+      maxWidth: 0.06 + hash(j*5.2)*0.07,
+      colorSeed: j + 1
+    });
+    var windAngle2 = (hash(j*11.9+1) - 0.5) * 0.5;
+    var cosA2 = Math.cos(windAngle2), sinA2 = Math.sin(windAngle2);
+
+    leaf2.behind = false;
+    leaf2.spawnX = px2; leaf2.spawnY = py2;
+    leaf2.life = 6 + hash(j*1.9)*3;
+    leaf2.phase = hash(j*5.6)*22;
+    leaf2.speed = 2.0 + hash(j*3.5)*1.6;
+    leaf2.gravity = 0.2 + hash(j*2.4)*0.3;
+    leaf2.windDir = { x: BASE_WIND.x*cosA2 - BASE_WIND.y*sinA2, y: BASE_WIND.x*sinA2 + BASE_WIND.y*cosA2 };
+    leaf2.swayAmp = 1.2 + hash(j*6.3)*1.4;
+    leaf2.swayFreq = 0.5 + hash(j*4.6)*0.6;
+    leaf2.gustAmp = 0.4 + hash(j*8.6)*0.6;
+    leaf2.gustFreq = 1.6 + hash(j*3.9)*1.4;
+    leaf2.gustPhase = hash(j*7.3)*20;
+    leaf2.rotX = 0.6 + hash(j*7.4)*0.9;
+    leaf2.rotZ = 0.8 + hash(j*9.6)*1.1;
+    leaves.push(leaf2);
+  }
+
+  var reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var rafHandle = null;
+
+  function frame(now){
+    rafHandle = requestAnimationFrame(frame);
+    ctx.clearRect(0, 0, boxW, boxH);
+    if (reduceMotion) return;
+    var t = now / 1000;
+
+    for (var k = 0; k < leaves.length; k++){
+      var lf = leaves[k];
+      var age = (t + lf.phase) % lf.life;
+      var progress = age / lf.life;
+      var dist = age * lf.speed;
+      var drop = 0.5 * lf.gravity * age * age * 0.12;
+      var sway = Math.sin(age * lf.swayFreq) * lf.swayAmp * progress;
+      var gust = Math.sin(age * lf.gustFreq + lf.gustPhase) * lf.gustAmp * progress;
+      var wobble = sway + gust;
+
+      /* pct-space position, algebraically identical to the three.js
+         world-space version (worldY = 50-pctY inverted back out) */
+      var px = lf.spawnX + lf.windDir.x * dist + wobble * 0.4;
+      var py = lf.spawnY + lf.windDir.y * dist * 0.3 + drop - wobble * 0.25;
+
+      var opacity;
+      if (lf.behind){
+        var revealed = px > BEHIND_REVEAL_PCT;
+        opacity = revealed ? Math.min(1, Math.sin(progress*Math.PI)*1.6) * 0.92 : 0;
+      } else {
+        opacity = Math.min(1, Math.sin(progress*Math.PI)*1.6) * 0.92;
+      }
+      if (opacity <= 0.01) continue;
+
+      var colorT = Math.max(0, Math.min(1, (progress - 0.3) / 0.45));
+      var r = lf.dark[0] + (lf.lit[0]-lf.dark[0])*colorT;
+      var g = lf.dark[1] + (lf.lit[1]-lf.dark[1])*colorT;
+      var b = lf.dark[2] + (lf.lit[2]-lf.dark[2])*colorT;
+
+      var zRot = age * lf.rotZ * 0.7 + sway * 0.15;
+      /* cheap fake-3D tumble: fold the leaf's width as it "turns edge-on",
+         the 2D read of the three.js version's x/y-axis rotation */
+      var foldX = Math.max(0.15, Math.abs(Math.cos(age * lf.rotX)));
+
+      var pxCanvas = (px / 100) * boxW;
+      var pyCanvas = (py / 100) * boxH;
+      var lenPx = (lf.length / 100) * boxH;
+      var widPx = (lf.maxWidth / 100) * boxW * foldX;
+
+      ctx.save();
+      ctx.translate(pxCanvas, pyCanvas);
+      ctx.rotate(zRot);
+      ctx.globalAlpha = opacity;
+      ctx.fillStyle = "rgb(" + (r|0) + "," + (g|0) + "," + (b|0) + ")";
+      ctx.beginPath();
+      ctx.ellipse(0, 0, Math.max(0.6, widPx/2), Math.max(0.6, lenPx/2), 0, 0, Math.PI*2);
+      ctx.fill();
+      ctx.restore();
     }
   }
-  return { left: 44, right: 56 };
-}
-const SIL_TOP = SILHOUETTE[0][0], SIL_BOTTOM = SILHOUETTE[SILHOUETTE.length - 1][0];
-const SIL_MAX_RIGHT = Math.max(...SILHOUETTE.map(r => r[2]));
 
-const BASE_WIND = { x: 1, y: 0.15 };
-const flyGroup = new THREE.Group();
-
-const LIT_COLORS = [0xffcf9e, 0xeeaa72, 0xfec899, 0xffdcb0];
-/* indigo-purple, not brown — B channel >= R on every entry, sampled from
-   the same ink/surface/surface-2/surface-warm tokens as the rest of the
-   page (v2 sunrise ramp, 2026-08-04). */
-const DARK_COLORS = [0x3e3050, 0x473456, 0x4c3a57, 0x5a415c];
-
-const BEHIND_REVEAL_X = pctToWorld(SIL_MAX_RIGHT - 3, 0).x;
-
-function makeLeaf({ length, maxWidth, curlAmount, twistAmount, colorSeed }){
-  const geo = buildLeafGeometry({ length, maxWidth, curlAmount, twistAmount });
-  const mat = new THREE.MeshStandardMaterial({
-    color: 0x3e3050, flatShading: true, roughness: 0.85, metalness: 0.02,
-    side: THREE.DoubleSide, transparent: true, opacity: 0,
-  });
-  const leaf = new THREE.Mesh(geo, mat);
-  leaf.userData.darkColor = new THREE.Color(DARK_COLORS[colorSeed % DARK_COLORS.length]);
-  leaf.userData.litColor = new THREE.Color(LIT_COLORS[colorSeed % LIT_COLORS.length]);
-  flyGroup.add(leaf);
-  return leaf;
-}
-
-const N_WIND = 150;
-for (let i = 0; i < N_WIND; i++){
-  const py = SIL_TOP + hash(i * 9.1) * (SIL_BOTTOM - SIL_TOP);
-  const { left, right } = silhouetteAt(py);
-  const margin = 1.2;
-  const px = (left + margin) + hash(i * 2.3 + 4.1) * Math.max(0, (right - left) - margin * 2);
-  const spawn = pctToWorld(px, py);
-
-  const leaf = makeLeaf({
-    length: 0.15 + hash(i * 3.1) * 0.19,
-    maxWidth: 0.06 + hash(i * 5.7) * 0.07,
-    curlAmount: 0.08 + hash(i * 7.3) * 0.12,
-    twistAmount: 0.2 + hash(i * 2.9) * 0.6,
-    colorSeed: i,
+  /* PRODUCT.md: the target OS "kills backgrounded tabs aggressively" —
+     pause the render loop on visibilitychange so a backgrounded-but-not-
+     yet-killed tab isn't burning CPU/battery on leaves nobody can see. */
+  document.addEventListener("visibilitychange", function(){
+    if (document.hidden){ if (rafHandle) cancelAnimationFrame(rafHandle); rafHandle = null; }
+    else if (!rafHandle){ rafHandle = requestAnimationFrame(frame); }
   });
 
-  const windAngle = (hash(i * 11.3 + 1) - 0.5) * 0.9;
-  const cosA = Math.cos(windAngle), sinA = Math.sin(windAngle);
-  const windDir = {
-    x: BASE_WIND.x * cosA - BASE_WIND.y * sinA,
-    y: BASE_WIND.x * sinA + BASE_WIND.y * cosA,
-  };
-
-  const rowCenter = (left + right) / 2, rowHalfWidth = (right - left) / 2;
-  const nearCenter = Math.abs(px - rowCenter) < rowHalfWidth * 0.35;
-
-  leaf.userData = {
-    ...leaf.userData,
-    behind: nearCenter,
-    spawn: new THREE.Vector3(spawn.x, spawn.y, (hash(i * 4.4) - 0.5) * 20),
-    life: 7 + hash(i * 1.7) * 5,
-    phase: hash(i * 5.3) * 24,
-    speed: 2.2 + hash(i * 3.8) * 2.4,
-    gravity: 0.3 + hash(i * 2.2) * 0.5,
-    windDir,
-    swayAmp: 2.2 + hash(i * 6.1) * 2.8,
-    swayFreq: 0.5 + hash(i * 4.9) * 0.7,
-    gustAmp: 0.7 + hash(i * 8.4) * 1.1,
-    gustFreq: 1.8 + hash(i * 3.6) * 1.8,
-    gustPhase: hash(i * 7.1) * 20,
-    rotRates: { x: 0.8 + hash(i*7.7)*1.2, y: 0.5 + hash(i*8.8)*1.0, z: 1.0 + hash(i*9.9)*1.4 },
-  };
-}
-
-const SUN_PCT = { px: 51.5, py: 66 };
-const N_SUN = 14;
-for (let i = 0; i < N_SUN; i++){
-  const py = SIL_BOTTOM - hash(i * 5.5) * 6;
-  const { left } = silhouetteAt(py);
-  const px = left + 0.6 + hash(i * 8.8) * 3;
-  const spawn = pctToWorld(px, py);
-
-  const leaf = makeLeaf({
-    length: 0.15 + hash(i * 3.4) * 0.19,
-    maxWidth: 0.06 + hash(i * 5.2) * 0.07,
-    curlAmount: 0.08 + hash(i * 7.6) * 0.12,
-    twistAmount: 0.2 + hash(i * 2.1) * 0.6,
-    colorSeed: i + 1,
-  });
-
-  const windAngle = (hash(i * 11.9 + 1) - 0.5) * 0.5;
-  const cosA = Math.cos(windAngle), sinA = Math.sin(windAngle);
-  const windDir = {
-    x: BASE_WIND.x * cosA - BASE_WIND.y * sinA,
-    y: BASE_WIND.x * sinA + BASE_WIND.y * cosA,
-  };
-
-  leaf.userData = {
-    ...leaf.userData,
-    behind: false,
-    spawn: new THREE.Vector3(spawn.x, spawn.y, (hash(i * 4.6) - 0.5) * 6),
-    life: 6 + hash(i * 1.9) * 3,
-    phase: hash(i * 5.6) * 22,
-    speed: 2.0 + hash(i * 3.5) * 1.6,
-    gravity: 0.2 + hash(i * 2.4) * 0.3,
-    windDir,
-    swayAmp: 1.2 + hash(i * 6.3) * 1.4,
-    swayFreq: 0.5 + hash(i * 4.6) * 0.6,
-    gustAmp: 0.4 + hash(i * 8.6) * 0.6,
-    gustFreq: 1.6 + hash(i * 3.9) * 1.4,
-    gustPhase: hash(i * 7.3) * 20,
-    rotRates: { x: 0.6 + hash(i*7.4)*0.9, y: 0.4 + hash(i*8.5)*0.7, z: 0.8 + hash(i*9.6)*1.1 },
-  };
-}
-
-scene.add(flyGroup);
-
-const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
-const clock = new THREE.Clock();
-// PRODUCT.md: the target OS "kills backgrounded tabs aggressively" — this
-// pauses the render loop on visibilitychange rather than waiting for that,
-// so a backgrounded-but-not-yet-killed tab isn't burning CPU/battery on
-// leaves nobody can see.
-let rafHandle = null;
-function frame(){
+  resize();
   rafHandle = requestAnimationFrame(frame);
-  if (!reduceMotion){
-    const t = clock.getElapsedTime();
-    flyGroup.children.forEach((leaf) => {
-      const {
-        behind, spawn, life, phase, speed, gravity, windDir,
-        swayAmp, swayFreq, gustAmp, gustFreq, gustPhase,
-        rotRates, darkColor, litColor,
-      } = leaf.userData;
-      const age = (t + phase) % life;
-      const progress = age / life;
-      const dist = age * speed;
-      const drop = 0.5 * gravity * age * age * 0.12;
-
-      const sway = Math.sin(age * swayFreq) * swayAmp * progress;
-      const gust = Math.sin(age * gustFreq + gustPhase) * gustAmp * progress;
-      const wobble = sway + gust;
-
-      leaf.position.set(
-        spawn.x + windDir.x * dist + wobble * 0.4,
-        spawn.y - windDir.y * dist * 0.3 - drop + wobble * 0.25,
-        spawn.z + wobble
-      );
-      leaf.rotation.x = age * rotRates.x + gust * 0.3;
-      leaf.rotation.y = age * rotRates.y;
-      leaf.rotation.z = age * rotRates.z * 0.7 + sway * 0.15;
-
-      if (behind){
-        const revealed = leaf.position.x > BEHIND_REVEAL_X;
-        leaf.material.opacity = revealed ? Math.min(1, Math.sin(progress * Math.PI) * 1.6) * 0.92 : 0;
-      } else {
-        leaf.material.opacity = Math.min(1, Math.sin(progress * Math.PI) * 1.6) * 0.92;
-      }
-
-      const colorT = Math.max(0, Math.min(1, (progress - 0.3) / 0.45));
-      leaf.material.color.copy(darkColor).lerp(litColor, colorT);
-    });
-  }
-  renderer.render(scene, camera);
-}
-
-document.addEventListener("visibilitychange", () => {
-  if (document.hidden){ if (rafHandle) cancelAnimationFrame(rafHandle); rafHandle = null; }
-  else if (!rafHandle){ frame(); }
-});
-
-resize();
-frame();
+})();
 </script>
 </body>
 </html>

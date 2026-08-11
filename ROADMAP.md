@@ -7,10 +7,27 @@
 > working without a plan would mean picking things in whatever order they got mentioned in
 > chat. Update this file as phases complete or priorities change; don't let it go stale.
 
+## Product and testing standard (added 2026-08-08)
+
+**HUSTLE is a mobile application**, not a website — see `PRODUCT.md` → "Product target vs.
+current implementation." Everything below that still says "prototype" or "the browser build" is
+describing today's implementation stage, not the product's platform commitment; the final
+mobile technology (native / React Native / Flutter / Capacitor / PWA) is an open Phase 4
+decision, not something to infer from what the prototype happens to be built in.
+
+**Every change to `prototype/hustle-shell.html` must be verified through the actual rendered
+application, not source-code inspection alone** — see `TESTING.md` for the full standard
+(Playwright/browser automation workflow, first-time-player probing, mobile interaction and
+network testing, the real-device validation hierarchy). This isn't new practice — Phase 1, 2.5,
+and the Sunrise `DESIGN.md` passes were already done this way — but it's now written down as a
+required practice rather than an implied one.
+
 ## Where this stands right now
 
 - `prototype/hustle-shell.html` — single-file vanilla-JS prototype, all 4 stages (Profile →
   Scanner → Plan → Crisis) plus landing/archetype/mode onboarding and an Ending/ledger screen.
+  **This is prototype infrastructure for iterating on game design and visual system — not the
+  final mobile platform.** See the product/testing standard above.
   Real game content (opportunities, plan questions, all 14 crisis days, lesson cards) ported
   from `prototype/build/`, which itself was extracted from the deployed bundle — nothing in
   Stage 2-4 is invented.
@@ -143,8 +160,16 @@ NQF/SAQA classroom audience is still real and still binding — that's who the *
 written for — but the *product* itself should be planned as something that stands on its own
 outside a classroom, which changes what Phase 4 actually needs to answer.
 
+- [x] **Choose the mobile technology and the reuse plan** — ✅ decided 2026-08-08, see
+      `ARCHITECTURE.md`. **Recommendation: React Native (Hermes + New Architecture),
+      Android-first.** Beats Flutter on memory/size and Capacitor on cold-start and on the
+      specific WebView-vs-animation-heavy-content weakness that lines up with `DESIGN.md`'s own
+      game-feel layer. Domain logic/content ports as a framework-agnostic TS layer; the whole
+      Sunrise UI/animation layer gets rebuilt against RN primitives, guided by `DESIGN.md` as
+      spec. **Decision only — migration itself is un-started**, gated on a real-device-validated
+      vertical slice first (`ARCHITECTURE.md` §11/§13).
 - [ ] Decide whether/how these mechanics port from this vanilla-JS prototype into the real
-      React app at `hustle-simulation.netlify.app`
+      React app at `hustle-simulation.netlify.app` — folds into the reuse plan above
 - [ ] **A real monetization model**, chosen deliberately rather than defaulted into — see
       "Monetization, done carefully" below before building anything here
 - [ ] Facilitator-side needs, currently **[assumed]** and unresolved per `PRODUCT.md`: cohort

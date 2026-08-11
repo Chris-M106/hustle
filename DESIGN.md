@@ -168,6 +168,12 @@ components:
 
 ## Overview
 
+**HUSTLE is a mobile application** (see `PRODUCT.md`) — every token, breakpoint, and component
+below is designed mobile-first for low-end Android, not shrunk down from a desktop layout. The
+current implementation renders these tokens in a browser prototype; that's an implementation
+detail, not the design target. See `TESTING.md` for verifying any of this against the actual
+rendered app rather than the source alone.
+
 **Creative North Star: Sunrise, replacing Painted Signboard outright (2026-08-04).**
 
 > THESIS: the game opens on the one real photograph in the whole product — a lone yellowwood
