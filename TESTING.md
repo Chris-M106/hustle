@@ -13,6 +13,18 @@
 > it actually behaves on a touch device under real constraints — not in whether its source
 > reads correctly.
 
+## Environment status (added 2026-08-11)
+
+**This file describes the required standard, not a built environment.** Checked
+2026-08-11: no `package.json`, no Playwright install/config, and no committed or
+scratchpad automation scripts exist anywhere in this project — `git log` shows only
+art/docs commits. Phase 1, 2.5, and the Sunrise passes referenced above as prior
+verification work were done via manual/ad hoc browser sessions in earlier chat
+sessions, not a standing automated harness — no register of that setup survived
+between sessions. See `ROADMAP.md` → "Where this stands right now" for the open
+tracking item. Setting this up (Playwright + the viewport matrix below, pointed at
+`prototype/hustle-shell.html`) is unstarted work, not a rediscovered thing.
+
 ## The two standing rules
 
 **1. HUSTLE is a mobile application.** Design and evaluate mobile-first — start from the phone,
