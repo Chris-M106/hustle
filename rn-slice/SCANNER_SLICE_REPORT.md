@@ -366,3 +366,125 @@ gap is now closed for 3 of the 5 flows named there (repeat-scan/select, immediat
 select-then-commit, double-tap-commit) plus baseline/negative-control. The kill/corruption
 cases (4/5/6/7/8/8b) remain unclosed — still DOCUMENTED FROM EARLIER WORK, not freshly
 reproduced. No CRITICAL/MAJOR defect was found or fixed this session.
+
+## SESSION ADDENDUM 2 (2026-08-12, continued gap-closing pass — steps 2A/2C/3/4/5/6)
+
+This addendum closes the remaining gaps the addendum above left open, all executed fresh this
+session against the current `App.tsx`/domain code and the current release build on
+`hustle_lowend`.
+
+**STEP 2A — Domain differential, rebuilt and rerun.** No differential harness previously
+existed inside `rn-slice` (the prior one lived only in the parent repo's `domain-ts`, off
+limits to write against/depend on). Built a new, independent one:
+`__tests__/scanner.domain.differential.test.ts`, hand-re-deriving the prototype's arithmetic
+(`hustle-shell.html:1913-2021`) and click-handler mutation logic
+(`hustle-shell.html:2115-2123`, `:2845-2867`) directly from the prototype source, not copied
+from the parent repo's `diff_sim.js`. **37/37 cases passed** (30 arithmetic cases: 5
+businesses x 6 network-stat values; 7 state-transition cases). **0 genuine mismatches.** Two
+intentional divergences were found and documented as non-bugs, not fixed: (1) the port's
+select-on-unscanned guard covers an input the prototype's own UI can never produce; (2) the
+port's round-2 recommit-to-same-business guard is stricter than the prototype (prototype
+silently allows and recomputes identical values; port rejects with `already-committed`) —
+same end-state values either way, no behavioral divergence a user could observe. [CERTAIN —
+executed this session]
+
+**STEP 2C — Real native storage failure, reproduced.** Corrupted the actual on-device SQLite
+file backing AsyncStorage (`/data/data/com.hustlecrisisslice/databases/AsyncStorage`, table
+`Storage`) directly via `dd if=/dev/urandom` while the app was closed, confirmed corruption at
+the SQLite engine level (`sqlite3` reported `Error: file is not a database`), then relaunched
+and observed real behavior — not a mocked/simulated JS-level throw. **Finding (new, not
+previously documented anywhere):** Android's own Room/SQLite framework detects the corruption
+and deletes the database file itself, *below* the JS/AsyncStorage layer, before the app's own
+JS-level "corrupt save backed up" handling (`isValidScannerState` / `BACKUP_KEY` path, tested
+in round 1 via JSON-level corruption) ever runs. The app still recovers cleanly either way — no
+crash, "No saved run — starting fresh." — but the recovery path exercised by genuine native
+corruption is Android's, not the app's own corrupt-JSON handling path. Screenshot:
+`.maestro/native_storage_corruption_result.png`. [CERTAIN — executed this session]
+
+**STEP 3 — Fresh independent adversary pass.** Full 417-line `App.tsx` read and analyzed
+against STATE, PERSISTENCE, VALIDATION, and UI/INTERACTION categories, independent of (not
+just re-confirming) the round-2 findings already in this report. Checked: double-tap-commit
+race (`committingRef`, sync-checked before any await — safe), select-while-committed guard,
+restore-then-autosave interaction (a harmless redundant re-write of identical just-restored
+data, traced but not runtime-observed), the invalid-JSON branch's asymmetric
+`skipNextAutosave` handling vs. the read-failure branch (both produce correct outcomes, just by
+different means), `isValidScannerState`'s relational invariants, and button-visibility mutual
+exclusivity across all 4 UI states. **0 new CRITICAL/MAJOR findings.** Nothing to fix/rebuild/
+retest. [SUPPORTED — static code-review pass, not a runtime/emulator exercise]
+
+**Item 4 — Kill-before-select / kill-before-commit, done properly via Maestro.** Two new
+flows written, using Maestro's own `killApp` (a real process kill, not `stopApp`'s graceful
+lifecycle) followed by `launchApp: {clearState: false}`:
+- `.maestro/scanner_adv_kill_before_select.yaml` — scan, wait for autosave to have a chance to
+  flush, `killApp`, relaunch, assert restored scanned state, then complete select. **PASSED,
+  all assertions COMPLETED.**
+- `.maestro/scanner_adv_kill_before_commit.yaml` — scan, select, wait, `killApp`, relaunch,
+  assert restored selected-not-committed state, then complete commit, then a second graceful
+  `stopApp`/relaunch to confirm the committed state also survives. **PASSED, all assertions
+  COMPLETED.**
+Both run fresh against the currently installed build. Classification: **NO ISSUE** — the
+fire-and-forget autosave effect had already persisted by the time of kill in both cases; no
+corruption, no crash, no stuck loading state observed. This closes the gap the prior addendum
+explicitly flagged (raw `adb` coordinate taps discarded as inconclusive) — these are now real,
+repeatable Maestro-scripted evidence, superseding the round-1
+`scanner_adv_case4_killbeforeselect.png` / `case5_killbeforecommit.png` screenshots, which had
+no corresponding committed `.yaml` source. [CERTAIN — executed this session]
+
+**STEP 5 — Performance baseline, hustle_lowend, freshly measured.**
+- APK size (release): 58.7 MB (`android/app/build/outputs/apk/release/app-release.apk`).
+  [FRESHLY MEASURED] No documented budget exists for APK size in `RN_VALIDATION_REPORT.md` or
+  elsewhere checked — [INCONCLUSIVE against a budget, since none is documented; the number
+  itself is CERTAIN].
+- Cold start (`am force-stop` then `am start -W`): TotalTime 1155 ms. [FRESHLY MEASURED]
+  Compared to the only documented figures found — `RN_VALIDATION_REPORT.md`'s Crisis-slice
+  cold-start cycles, corrected-methodology run: 1392/1443/1319/909 ms — Scanner's 1155 ms
+  falls inside that same range. [DOCUMENTED budget exists for Crisis, reused here as the only
+  available reference; Scanner has no budget of its own documented]
+- Warm start (`am start -W` while task already resident): TotalTime 292 ms. [FRESHLY MEASURED]
+  No documented warm-start budget found to compare against. [INCONCLUSIVE against a budget]
+- Memory/PSS (`dumpsys meminfo`): TOTAL PSS 56.7 MB immediately post-cold-start, 62.1 MB after
+  a warm-start cycle. [FRESHLY MEASURED] Compared to `RN_VALIDATION_REPORT.md`'s Crisis-slice
+  figures (55.5 MB baseline at first launch, 51.7 MB after 10 rapid kill/relaunch cycles),
+  Scanner's PSS is in the same order of magnitude, modestly higher. [DOCUMENTED budget exists
+  for Crisis, reused as reference; no runaway-growth pattern observed in this single-cycle
+  measurement, but this pass did not run Crisis's 10-cycle rapid-fire test against Scanner, so
+  growth-under-repeated-cycling is NOT verified for Scanner specifically]
+- Interaction responsiveness: full `scanner_baseline.yaml` flow (launch → scan → select →
+  commit → kill → restore, 19 assertions) completed with every `tapOn`/`assertVisible` step
+  reporting `COMPLETED` on Maestro's first attempt — no retry/backoff log entries, no visible
+  lag. [FRESHLY MEASURED, qualitative — Maestro does not expose per-tap latency numbers, so
+  this is "no observed lag," not a measured millisecond figure]
+
+**STEP 6 — Visual/UX audit, real screen vs. `DESIGN.md` Sunrise system vs. prototype.**
+Captured the current committed-state screen via `adb screencap` and compared directly against
+`DESIGN.md`'s documented Sunrise palette/type tokens.
+- **Palette divergence (MINOR, not fixed):** the RN screen uses an entirely different color
+  system (`#14100D` background, `#E2571E` accent orange, `#F5EDE3` text, `#2E7D32` commit
+  green) than `DESIGN.md`'s documented Sunrise tokens (`ink #3E3050`, `enamel-orange #F2941C`,
+  `bone #F5F0FA`, etc.) — no token from the RN screen matches a `DESIGN.md` token. **Not
+  classified CRITICAL/MAJOR**: `SCANNER_SLICE_PLAN.md` never claims Sunrise visual parity as
+  in-scope (this slice's own scope statement is architecture validation, matching the Crisis
+  slice's own placeholder styling convention, not a design-system port) — confirmed by reading
+  `SCANNER_SLICE_PLAN.md` in full this session; no scope line claims visual fidelity. Recorded
+  here as a real, observable gap for whoever eventually does the visual pass, not fixed because
+  fixing it would be unrequested redesign work outside this protocol's step 6 instruction
+  ("audit only, no redesign... fix only CRITICAL/MAJOR blockers").
+- **Layout/readability:** text hierarchy (header > body > selected/committed notes) reads
+  correctly; commit button has adequate contrast and touch-target size; no overlapping or
+  clipped text observed in the committed-state screenshot; scroll affordance present via
+  `ScrollView`. **NO ISSUE.**
+- **Interaction affordances:** button states (Scan → Choose → Commit → Committed panel) are
+  each shown/hidden correctly per state, matching the prototype's three-tap progression
+  conceptually (exact prototype visual — cards, forces meter, animation — is explicitly
+  deferred per `SCANNER_SLICE_PLAN.md`, not compared here since it's out-of-scope-by-design).
+  **NO ISSUE.**
+- No CRITICAL/MAJOR blockers found; nothing fixed. [SUPPORTED — single-screenshot audit
+  against one state (committed); pre-scan/scanned/selected states were not separately
+  screenshotted this pass, so this audit's coverage is the committed state plus the
+  already-fresh `scanner_baseline.yaml` run's implicit visibility assertions for the other
+  three states, not four independent visual inspections]
+
+**Updated net status:** all 9 items from the coordinator's second follow-up list are now
+addressed except the cross-stage experiment plan doc and final commit, both handled separately
+(see `NEXT_EXPERIMENT_SCANNER_PLAN_CRISIS.md` and the commit following this addendum). No
+CRITICAL/MAJOR defect was found this session; nothing required fixing.
