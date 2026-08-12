@@ -319,3 +319,50 @@ corruption, Maestro reliably tests the core flow, no unresolved CRITICAL/MAJOR d
 
 Per the approval's Final Stop (§13): **stopping here.** Not expanding to the full
 Scanner, not adding Plan, not building the carousel, not adding a navigation library.
+
+## SESSION ADDENDUM (2026-08-12, gap-closing pass)
+
+Scope: close the specific gaps this report already flagged as open, not expand the slice.
+No source code was changed this pass (no genuine defect was found). Working tree was clean
+at start (`6e1a9bb`) and remains clean.
+
+- **tsc --noEmit surfaced 8 pre-existing type errors** in `__tests__/App.test.tsx` and
+  `__tests__/App.scanner.adversary.test.tsx` (a `setTimeout` executor-arity mismatch against
+  the current `@types/node`), not present in the prior report's "tsc clean" claim. **Runtime
+  behavior is unaffected** — the test suite runs on Babel/Jest, not `tsc`, and `npx jest` still
+  passes 6/6 this session. This is a type-checking-only drift (`@types/node` version), not an
+  app bug; left unfixed as out-of-scope for this gap-closing pass, but flagged here since the
+  prior report's "tsc clean" claim no longer holds literally.
+- **Round-1 Maestro flows the prior report explicitly left un-rerun after the round-2 fixes**
+  (`scanner_adv_repeat_scan_select.yaml`, `scanner_adv_select_commit_immediate.yaml`,
+  `scanner_adv_double_tap_commit.yaml`) were rerun fresh this session against the currently
+  installed build (`lastUpdateTime` postdates the last source edit, consistent with — not
+  cryptographically proven to be — a build of `6e1a9bb`). All three: COMPLETED, all assertions
+  passed. `scanner_baseline.yaml` and `scanner_negative_control.yaml` were also rerun fresh:
+  baseline COMPLETED end-to-end (scan → select → commit → kill → restore); negative control
+  FAILED as required on its deliberately-false assertion (real Maestro FAILED status, not a
+  weakened pass).
+- **Kill-before-select and kill-before-commit adversarial cases were NOT freshly re-verified
+  this session.** An attempt was made via raw `adb shell input tap` coordinates timed against
+  app launch, but the tap missed its target (screenshot showed the pre-scan idle screen, not a
+  scanned state) — an invalid/inconclusive attempt, discarded rather than reported as a pass.
+  These two cases remain **DOCUMENTED FROM EARLIER WORK (round 1)** only, not freshly
+  reproduced this session. If trusting them matters for a future decision, rerun properly
+  (Maestro-scripted `killApp`/relaunch, not manual `adb` coordinate taps) before relying on them.
+- **Native AsyncStorage failure-path reproduction (protocol step 2C), performance baseline
+  (step 5), and visual/UX audit (step 6) were NOT attempted this session** — out of the time
+  budget available for this pass. Not claiming coverage that didn't happen. The CRITICAL
+  restore-failure fix's evidence remains jest-only (mocked AsyncStorage), exactly as the prior
+  report already flagged as a limitation; that limitation is unchanged, not newly closed.
+- **Domain differential validation** — not rerun beyond the existing jest suite (`npx jest`,
+  6/6 pass, including the adversary-round-2 regression tests that exercise `commitSpot`,
+  `isValidScannerState`, restore-failure backup, and select-while-committed guards against the
+  real `App.tsx`). No new differential comparison against the prototype was performed this
+  session; the prior report's arithmetic-only differential (30 cases, 0 mismatches) stands as
+  DOCUMENTED FROM EARLIER WORK, not refreshed here.
+
+**Net effect on the report's own limitations list**: the "round-1 Maestro flows not re-run"
+gap is now closed for 3 of the 5 flows named there (repeat-scan/select, immediate
+select-then-commit, double-tap-commit) plus baseline/negative-control. The kill/corruption
+cases (4/5/6/7/8/8b) remain unclosed — still DOCUMENTED FROM EARLIER WORK, not freshly
+reproduced. No CRITICAL/MAJOR defect was found or fixed this session.
