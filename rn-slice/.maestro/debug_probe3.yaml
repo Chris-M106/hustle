@@ -1,0 +1,4 @@
+appId: com.hustlecrisisslice
+---
+- assertVisible:
+    text: "Day 1"
