@@ -61,8 +61,14 @@ const COMMIT_FAIL_NOTE = 'Commit could not be saved — try again. Your selectio
 // remount so two component instances never issue concurrent setItem calls.
 let writeQueue: Promise<void> = Promise.resolve();
 
-function timeout(ms: number): Promise<never> {
-  return new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms));
+// `Promise.race` alone leaves the loser's timer pending after the race settles — on a
+// screen that can remount, that's a real (if small) leak. `finally` clears it either way.
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error('timeout')), ms);
+  });
+  return Promise.race([p, timeoutPromise]).finally(() => clearTimeout(timer));
 }
 
 function queuedWrite(key: string, payload: string): Promise<void> {
@@ -83,6 +89,7 @@ function isValidScannerState(v: unknown): v is ScannerRunState {
   const structural =
     s.scanned !== null &&
     typeof s.scanned === 'object' &&
+    !Array.isArray(s.scanned) && // `[]` is typeof 'object' and vacuously all-boolean
     Object.values(s.scanned as Record<string, unknown>).every((x) => typeof x === 'boolean') &&
     (s.selected === null || typeof s.selected === 'string') &&
     (s.committedTo === null || typeof s.committedTo === 'string') &&
@@ -96,10 +103,20 @@ function isValidScannerState(v: unknown): v is ScannerRunState {
   const selected = s.selected as string | null;
   const committedTo = s.committedTo as string | null;
   const cash = s.cash as number | null;
+  const setupCost = s.setupCost as number | null;
   if (selected !== null && !scanned[selected]) return false; // can't select the unscanned
   if (committedTo !== null && selected !== committedTo) return false; // commit implies selection matches
   if (committedTo !== null && cash === null) return false; // committed implies cash is set
   if (committedTo === null && cash !== null) return false; // uncommitted implies cash is unset
+  if (committedTo !== null && setupCost === null) return false; // committed implies setupCost is set
+  if (committedTo === null && setupCost !== null) return false; // uncommitted implies setupCost is unset
+  if (setupCost !== null && setupCost < 0) return false;
+  if (cash !== null && cash < 0) return false;
+  // This slice's only real transition sets cash = CAPITAL - setupCost (commitSpot/
+  // opening()) — reject any payload where the two have been edited independently.
+  if (committedTo !== null && cash !== null && setupCost !== null && cash !== CAPITAL - setupCost) {
+    return false;
+  }
   return true;
 }
 
@@ -111,12 +128,20 @@ function ScannerSlice() {
   const [commitError, setCommitError] = useState<string | null>(null);
   const hydrated = useRef(false);
   const committingRef = useRef(false);
+  // Set true whenever the state we're about to setState() has already been persisted
+  // (or must NOT be persisted) by the code doing the setState — the autosave effect
+  // below checks it and skips exactly one write. Two distinct uses: (1) after restore
+  // fails/times out, so the mount-triggered fresh-state setState doesn't blindly
+  // overwrite whatever is actually on disk before the user has taken any real action;
+  // (2) after a successful commit, whose exact payload was already written by commit()
+  // itself, so the state-change-triggered autosave doesn't redundantly re-write it.
+  const skipNextAutosave = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const raw = await Promise.race([AsyncStorage.getItem(STORAGE_KEY), timeout(RESTORE_TIMEOUT_MS)]);
+        const raw = await withTimeout(AsyncStorage.getItem(STORAGE_KEY), RESTORE_TIMEOUT_MS);
         if (cancelled) return;
         if (raw == null) {
           setRestoreNote('No saved run — starting fresh.');
@@ -142,8 +167,26 @@ function ScannerSlice() {
       } catch (e) {
         console.warn('[hustle] restore failed', e);
         if (!cancelled) {
-          setRestoreNote('Could not read saved run — starting fresh.');
-          setState(createInitialScannerState());
+          // We don't know whether valid data is sitting on disk right now (the read
+          // itself failed or timed out) — do NOT let the fresh-state setState below
+          // silently overwrite it via the autosave effect. Best-effort backup first,
+          // same discipline as the invalid-JSON branch above, bounded so a second
+          // slow/failed read can't hang the fallback.
+          try {
+            const rawRetry = await withTimeout(AsyncStorage.getItem(STORAGE_KEY), 2000);
+            if (rawRetry != null) {
+              await AsyncStorage.setItem(BACKUP_KEY, rawRetry).catch((be) =>
+                console.warn('[hustle] backup after restore failure failed', be),
+              );
+            }
+          } catch (retryErr) {
+            console.warn('[hustle] backup retry after restore failure also failed', retryErr);
+          }
+          if (!cancelled) {
+            setRestoreNote('Could not read saved run — starting fresh (existing save backed up if reachable).');
+            skipNextAutosave.current = true;
+            setState(createInitialScannerState());
+          }
         }
       } finally {
         if (!cancelled) {
@@ -163,6 +206,10 @@ function ScannerSlice() {
   // flipping the render state.
   useEffect(() => {
     if (!hydrated.current) return;
+    if (skipNextAutosave.current) {
+      skipNextAutosave.current = false;
+      return;
+    }
     const payload = JSON.stringify(state);
     queuedWrite(STORAGE_KEY, payload).then(
       () => setRestoreNote((n) => (n === SAVE_FAIL_NOTE ? null : n)),
@@ -179,6 +226,12 @@ function ScannerSlice() {
 
   function select() {
     setState((prev) => {
+      // Already committed to a (possibly different) business — this slice is
+      // single-business today, but a foreign/older save or the future multi-business
+      // carousel can restore a committedTo that isn't BIZ.id; selecting anything else
+      // while committed produces an internally-inconsistent state this same file's
+      // own isValidScannerState would reject on the next restore. No-op instead.
+      if (prev.committedTo !== null) return prev;
       const r = selectSpot(prev, BIZ.id);
       return r.state;
     });
@@ -203,7 +256,13 @@ function ScannerSlice() {
     if (committingRef.current) return;
     const result = commitSpot(state, BIZ, CAPITAL);
     if (!result.ok) {
-      setCommitError(result.reason === 'over-budget' ? 'Not enough capital.' : 'Select the spot first.');
+      setCommitError(
+        result.reason === 'over-budget'
+          ? 'Not enough capital.'
+          : result.reason === 'already-committed'
+          ? 'Already committed.'
+          : 'Select the spot first.',
+      );
       return;
     }
     committingRef.current = true;
@@ -212,6 +271,10 @@ function ScannerSlice() {
     try {
       const payload = JSON.stringify(result.state);
       await queuedWrite(STORAGE_KEY, payload);
+      // Already persisted above with this exact payload — the autosave effect's own
+      // write of the same JSON would be redundant, and if THAT redundant write failed
+      // it would show "save failed" over a commit that's actually durable.
+      skipNextAutosave.current = true;
       setState(result.state);
     } catch (e) {
       console.warn('[hustle] commit persist failed', e);
@@ -278,7 +341,7 @@ function ScannerSlice() {
                 </Text>
               )}
 
-              {!isSelected && !isCommitted && (
+              {!isSelected && !state.committedTo && (
                 <TouchableOpacity style={styles.button} testID="selectBtn" onPress={select}>
                   <Text style={styles.buttonText}>Choose this spot</Text>
                 </TouchableOpacity>

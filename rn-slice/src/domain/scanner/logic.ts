@@ -101,6 +101,14 @@ export function commitSpot(
   o: ScannerOpportunity,
   capital: number = CAPITAL,
 ): CommitResult {
+  // Defense in depth: `selected` is left equal to `o.id` after a successful commit
+  // (see below), so `state.selected !== o.id` alone does not stop a second call from
+  // recommitting to the same business. The UI's own button-hiding is the only thing
+  // that currently prevents this via the App.tsx caller — this check makes the
+  // domain function itself idempotent, not just the one caller that happens to exist.
+  if (state.committedTo === o.id) {
+    return { state, ok: false, reason: "already-committed", resetDownstream: false };
+  }
   if (state.selected !== o.id) {
     return { state, ok: false, reason: "not-selected", resetDownstream: false };
   }

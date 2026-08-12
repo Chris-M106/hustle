@@ -147,14 +147,115 @@ visual, no longer for correctness.
       business's cost/cash; first-ever commit → `resetDownstream:false`. All 3 cases
       matched expectation.
 
+## ADVERSARY ROUND 2 — INDEPENDENT (2026-08-12)
+
+Formal `adversary` subagent pass, closing the gap flagged above. Fresh context, given only
+the source files and told not to trust this report's own claims. Attacked STATE,
+PERSISTENCE, CROSS-STAGE, TEST VALIDITY, LOW-END/UI. Full method: read `App.tsx` and
+`src/domain/scanner/{logic,types}.ts` directly, wrote 5 throwaway jest tests against the
+real `App.tsx` with a mocked AsyncStorage (deleted after use), reproduced each finding
+before reporting it.
+
+**Verdict returned: DO NOT SHIP as-is** — one CRITICAL data-loss path, four MAJOR defects,
+one MAJOR test-validity gap (the original `App.test.tsx` asserted nothing — `SafeAreaProvider`
+never resolved insets in the jest environment, so `App`'s children never mounted and the
+test passed even if the screen threw on render).
+
+### Findings, genuine vs. not
+
+| # | Sev | Finding | Genuine? |
+|---|-----|---------|----------|
+| 1 | CRITICAL | Restore failure/timeout (`App.tsx` catch branch) took no backup, then the autosave effect silently overwrote a real saved run with fresh empty state | Yes — reproduced |
+| 2 | MAJOR | `select()` unguarded against `committedTo !== null` for a *different* business (foreign/older save) — produces a state the app's own validator then rejects as corrupt on next launch | Yes — reproduced |
+| 3 | MAJOR | `isValidScannerState` accepted `scanned` as an array, `committedTo` set with `setupCost: null`, and arbitrary/negative `cash`/`setupCost` that don't reconcile | Yes — reproduced (3 sub-cases) |
+| 4 | MAJOR | `commitSpot` didn't guard against an identical re-commit to the same already-committed business (unreachable via the current UI, since the button hides — a domain-layer gap, not an app-level one) | Yes — genuine domain-layer gap, currently unreachable via UI |
+| 5 | MAJOR | `resetDownstream` on `CommitResult` computed and never consumed anywhere; §"FINDINGS" (round 1 of this report) had implied it was more than that | Yes — the report's own wording overclaimed; not a code defect, a documentation defect |
+| 6 | MAJOR | `__tests__/App.test.tsx` asserted nothing meaningful — SafeAreaProvider never resolved insets in jest, no mount, no assertions | Yes — reproduced |
+| 7 | MINOR | `timeout()`'s `setTimeout` was never cleared, leaking a 5s timer per mount | Yes — cheap fix, applied |
+| 8 | MINOR | Failed scan/select autosave surfaced `SAVE_FAIL_NOTE` but left the UI advanced (state shown as saved when it wasn't) | Confirmed as designed-behavior-with-a-caveat, not silently swallowed — no code change; already reported to the user via `restoreNote`, just not blocking. Left as-is (blocking the UI on every autosave failure is out of scope for this slice and would be its own design decision). |
+| 9 | MINOR | Post-commit `setState` re-triggered the autosave effect, redundantly re-writing the identical payload; a failure on *that* write showed "save failed" over an actually-durable commit | Yes — reproduced, cheap fix, applied |
+| 10 | MINOR | Weak negative-control assertion (asserts on an absent element, would also "pass"-as-fail on an app crash) | Correct as a limitation note, not a code defect — left as-is; documented here instead of reworked, to avoid scope creep into rebuilding the harness. |
+
+Nothing was found and rejected as a false positive this round — every reported item traced to
+a real line of code behaving as described.
+
+### FIXES (this session, applied to both `rn-slice/App.tsx`/`src/domain/scanner/*` and
+the mirrored `domain-ts/scanner/*`)
+
+1. **CRITICAL #1**: restore's `catch` branch now attempts a bounded (2s) best-effort backup
+   read before falling back to fresh state (same discipline as the existing invalid-JSON
+   branch), and a new `skipNextAutosave` ref suppresses the mount-triggered autosave write
+   for that one cycle — so a failed/slow restore can no longer silently clobber a real save
+   before the user has taken any action.
+2. **MAJOR #2**: `select()` is now a no-op whenever `state.committedTo !== null`, regardless
+   of which business it's committed to; the select-button's JSX condition changed from
+   `!isCommitted` (BIZ-specific) to `!state.committedTo` (any commitment).
+3. **MAJOR #3**: `isValidScannerState` gained `!Array.isArray(s.scanned)`, a
+   `committedTo`⇄`setupCost` null-consistency pair (mirroring the existing `cash` pair),
+   non-negativity checks, and a `cash === CAPITAL - setupCost` reconciliation check.
+4. **MAJOR #4**: `commitSpot` now rejects with `reason: "already-committed"` when
+   `state.committedTo === o.id`, checked before the `selected` check — makes the domain
+   function idempotent on its own, not dependent on the one caller that happens to hide the
+   button.
+5. **MAJOR #5**: `CommitResult.resetDownstream`'s doc comment corrected in both
+   `domain-ts/scanner/types.ts` and `rn-slice/src/domain/scanner/types.ts` to state plainly
+   it is not consumed anywhere yet and does not survive a restart on its own — no code
+   changed (consuming it is out of scope: no downstream stage exists yet to consume it into).
+6. **MAJOR #6**: `App.test.tsx` now mocks `react-native-safe-area-context` via its official
+   `jest/mock` export and asserts a real testID is present post-mount, instead of only
+   checking that `create()` doesn't throw.
+7. **MINOR #7/#9**: `withTimeout()` helper replaces the old bare `timeout()`, clearing its
+   timer in a `finally`; `commit()` now sets `skipNextAutosave` after its own persist so the
+   post-commit `setState` doesn't trigger a redundant duplicate write.
+
+### INDEPENDENT REPRODUCTION
+
+- `npx tsc --noEmit` clean in both `rn-slice/` and `domain-ts/` after all fixes.
+- New regression file `__tests__/App.scanner.adversary.test.tsx` (5 tests, all targeting the
+  CRITICAL/MAJOR findings above by reconstructing the exact failure scenario against the
+  real `App.tsx` with a controlled mock store) plus the corrected `App.test.tsx` — **6/6
+  pass** against the fixed code. This is a second, independently-written reproduction of the
+  same findings (different test code than the adversary's own throwaway tests, which were
+  deleted).
+- Full release APK rebuild (`assembleRelease`, `BUILD SUCCESSFUL`), reinstalled, fresh-install
+  confirmed via `dumpsys package | grep lastUpdateTime` matching wall-clock time (not trusting
+  Gradle's exit code alone, per this project's own standing discipline).
+- **EMULATOR-VERIFIED, on the rebuilt APK**: the new array-`scanned` validator gap was
+  re-tested for real (not just in jest) — `adb root`, direct SQLite write of
+  `{"scanned":[],...}` into the real `Storage` table, relaunch, screenshot confirms "Saved
+  data was invalid — starting fresh (corrupt copy backed up)." (`scanner_reverify_array_scanned.png`).
+- **EMULATOR-VERIFIED**: pre-fix evidence was not reused for any retest below.
+
+### E2E RETEST (post-fix, rebuilt APK, fresh `pm clear` before each)
+
+- `scanner_baseline.yaml` — all 18 steps COMPLETED, exit 0.
+- `scanner_negative_control.yaml` — genuinely FAILED (exit 1) on its deliberately-false
+  assertion, confirming the harness still correctly reports failure after the App.tsx changes.
+- `scanner_adv_double_tap_commit.yaml` — COMPLETED, exit 0 (single commit, correct cash,
+  commit button gone) — re-run because `commit()`'s body changed (added `skipNextAutosave`),
+  even though the `committingRef` guard itself was untouched this round.
+- The other 3 existing adversarial Maestro flows (repeat scan/select, immediate
+  select-then-commit, and the case-4/5/6/7/8/8b kill/corruption cases from round 1) were
+  **not** re-run this pass — none of their code paths changed. This is a DOCUMENTED FROM
+  EARLIER WORK gap, not a freshly-verified claim; flagged explicitly rather than silently
+  assumed still-clean.
+
 ## LIMITATIONS
 
 - **No real device** — emulator-only (`hustle_lowend`), standing project constraint,
   not new here.
-- **No formal `adversary` subagent pass** — see "ADVERSARY" above. The one real bug
-  found this pass was self-caught, not adversary-caught; that's a weaker guarantee
-  than the Crisis slice's own history, which needed an independent reviewer to catch
-  its equivalent bug.
+- ~~No formal `adversary` subagent pass~~ — **closed 2026-08-12**, see "ADVERSARY ROUND 2"
+  above: 1 CRITICAL + 5 MAJOR genuine findings, all fixed and independently reproduced.
+- **Adversarial Maestro flows from round 1 (kill/corruption cases, repeat-scan/select,
+  immediate select-commit) were not re-run against the round-2 fixes** — their code paths
+  didn't change, but that's an assumption, not a freshly-verified fact. If any future work
+  touches `scan()`, `selectSpot`, or the restore effect again, re-run them before trusting
+  this report's round-1 evidence as still current.
+- **The CRITICAL restore-failure fix was verified via jest (mocked AsyncStorage), not
+  reproduced as a real on-device failure.** Forcing a genuine `AsyncStorage.getItem`
+  rejection/timeout on a real emulator (vs. mocking the JS call) would require killing the
+  native module or the process mid-read, which wasn't attempted — the jest reproduction
+  exercises the exact same code path but not the exact same failure trigger.
 - **Torn-write mid-flush** (adversarial case 6's caveat) — not disprovable via
   black-box `adb`/`am force-stop` timing; same gap `PERSISTENCE_VALIDATION_REPORT.md`
   already carries for Crisis.
@@ -197,6 +298,19 @@ persistence and commit state never diverged in any tested case, no commit naviga
 forward without durable state, the domain port's own arithmetic showed 0 differential
 mismatches, Maestro reliably distinguished correct from incorrect state (negative
 control), and nothing here required a global state manager or a navigation library.
+
+**Updated after the round-2 independent adversary pass**: the initial self-reviewed
+implementation was not sound enough to ship — 1 CRITICAL data-loss path and 5 MAJOR
+defects existed in the code this report originally called SHIP-worthy. All are now fixed
+and independently reproduced (see "ADVERSARY ROUND 2" above). The architecture conclusion
+above still holds — nothing found was an *architectural* problem (no state-ownership
+ambiguity, no persistence/commit divergence, no need for a different pattern) — but the
+slice's *implementation* needed a real second pass to be trustworthy, exactly the
+"don't trust a self-applied fix" lesson this project has hit before (`LESSONS_LEARNED.md`).
+**Scanner slice is now a trustworthy architectural checkpoint** for what it demonstrates
+(second-stage persistence + atomic commit on the existing pattern), conditioned on the
+limitations above (no real device; round-1 Maestro flows not re-run; CRITICAL fix
+jest-verified, not on-device-failure-verified).
 
 **CONTINUE conditions met**: domain differential tests clean, commit semantics
 explicit and tested, persistence survives the required lifecycle tests including

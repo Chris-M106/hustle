@@ -65,7 +65,11 @@ export interface CommitResult {
   /** true when this commit replaces a DIFFERENT prior committed business — signals
    *  that any downstream (Crisis/Plan) state a real integration owns must be reset,
    *  matching the prototype's own commitBtn handler (hustle-shell.html:2849-2860).
-   *  This slice has no downstream stage to actually reset; the flag exists so the
-   *  transition is testable and the next slice doesn't have to rediscover it. */
+   *  NOT CONSUMED ANYWHERE YET (confirmed by grep, 2026-08-12 adversary pass) —
+   *  App.tsx computes it via commitSpot() but never reads it, and no persisted state
+   *  records that a downstream reset was owed. It is exercised only by direct calls
+   *  to commitSpot() in isolation. The next stage that needs it must implement
+   *  consumption AND its own persisted "reset owed" signal — this field alone does
+   *  not carry that guarantee across an app restart. */
   resetDownstream: boolean;
 }
