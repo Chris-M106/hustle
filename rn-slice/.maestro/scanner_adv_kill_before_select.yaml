@@ -1,0 +1,26 @@
+appId: com.hustlecrisisslice
+---
+# Adversarial: force-kill (not graceful stopApp) after scan, before select.
+# Verifies the fire-and-forget autosave effect had time to persist the scanned
+# state and that restore-on-relaunch produces a consistent, still-usable state.
+- launchApp:
+    clearState: true
+- assertVisible: ".*No saved run.*"
+- assertVisible: "Scan this spot"
+- tapOn: "Scan this spot"
+- assertVisible: ".*Demand HIGH.*"
+- assertVisible: "Choose this spot"
+# Give the fire-and-forget autosave effect a moment to actually flush before
+# the kill — this is testing the persisted-state path, not the write race.
+- extendedWaitUntil:
+    visible: "Choose this spot"
+    timeout: 2000
+- killApp
+- launchApp:
+    clearState: false
+- assertVisible: ".*Restored saved run.*"
+- assertVisible: ".*Demand HIGH.*"
+- assertVisible: "Choose this spot"
+- tapOn: "Choose this spot"
+- assertVisible: ".*Selected.*not yet committed.*"
+- assertVisible: ".*Commit R1,200.*"

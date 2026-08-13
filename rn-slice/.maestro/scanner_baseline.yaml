@@ -1,0 +1,23 @@
+appId: com.hustlecrisisslice
+---
+- launchApp:
+    clearState: true
+- assertVisible: ".*HUSTLE.*Scanner.*"
+- assertVisible: ".*No saved run.*"
+- assertVisible: "Scan this spot"
+- tapOn: "Scan this spot"
+- assertVisible: ".*Demand HIGH.*"
+- assertVisible: ".*Cost.*R1,200.*"
+- assertVisible: "Choose this spot"
+- tapOn: "Choose this spot"
+- assertVisible: ".*Selected.*not yet committed.*"
+- assertVisible: ".*Commit R1,200.*"
+- tapOn: ".*Commit R1,200.*"
+- assertVisible: ".*Committed R1,200 to Phone Repair Kiosk.*"
+- assertVisible: ".*Cash: R1,300.*"
+- stopApp
+- launchApp:
+    clearState: false
+- assertVisible: ".*Restored committed run.*"
+- assertVisible: ".*Committed R1,200 to Phone Repair Kiosk.*"
+- assertVisible: ".*Cash: R1,300.*"

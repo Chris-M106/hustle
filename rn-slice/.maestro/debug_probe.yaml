@@ -1,0 +1,5 @@
+appId: com.hustlecrisisslice
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Day 1"

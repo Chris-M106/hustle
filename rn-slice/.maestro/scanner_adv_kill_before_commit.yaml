@@ -1,0 +1,32 @@
+appId: com.hustlecrisisslice
+---
+# Adversarial: force-kill (not graceful stopApp) after select, before commit.
+# commit() itself synchronously persists before flipping render state, so this
+# flow never touches that path — it's testing whether the pre-commit "selected"
+# state (persisted only via the fire-and-forget autosave effect) survives a
+# real process kill without corrupting the save or leaving a half-committed UI.
+- launchApp:
+    clearState: true
+- assertVisible: ".*No saved run.*"
+- tapOn: "Scan this spot"
+- assertVisible: "Choose this spot"
+- tapOn: "Choose this spot"
+- assertVisible: ".*Selected.*not yet committed.*"
+- assertVisible: ".*Commit R1,200.*"
+- extendedWaitUntil:
+    visible: ".*Commit R1,200.*"
+    timeout: 2000
+- killApp
+- launchApp:
+    clearState: false
+- assertVisible: ".*Restored saved run.*"
+- assertVisible: ".*Selected.*not yet committed.*"
+- assertVisible: ".*Commit R1,200.*"
+- tapOn: ".*Commit R1,200.*"
+- assertVisible: ".*Committed R1,200 to Phone Repair Kiosk.*"
+- assertVisible: ".*Cash: R1,300.*"
+- stopApp
+- launchApp:
+    clearState: false
+- assertVisible: ".*Restored committed run.*"
+- assertVisible: ".*Committed R1,200 to Phone Repair Kiosk.*"
