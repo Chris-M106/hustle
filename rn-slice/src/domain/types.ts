@@ -3,7 +3,12 @@
  *  reshape the data, this layer describes what the prototype already emits.
  */
 
-export type BusinessId = "phonerepair" | "spaza" | "salon" | "shisanyama" | "clothing";
+// BusinessId now lives in ./business — the one shared representation both the
+// Scanner and Crisis domains import from, so it is not defined independently here
+// anymore. Re-exported for backward compatibility with existing imports of
+// `BusinessId` from this module (logic.ts, crisis-decks consumers, tests).
+export type { BusinessId } from "./business";
+import type { BusinessId } from "./business";
 
 export type CrisisEventType =
   | "income"

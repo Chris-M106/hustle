@@ -6,13 +6,18 @@
  *  SCANNER_SLICE_PLAN.md.
  */
 
-export type DemandLevel = "LOW" | "MEDIUM" | "HIGH";
-export type CompetitionLevel = "LOW" | "MEDIUM" | "HIGH";
+// DemandLevel/CompetitionLevel/BusinessId now come from ../business — the one
+// shared representation Scanner and Crisis both import, unified 2026-08-13 (was
+// independently redefined here before). Re-exported for existing importers of
+// this module.
+export type { BusinessId, DemandLevel, CompetitionLevel } from "../business";
+import type { BusinessId, DemandLevel, CompetitionLevel } from "../business";
 
 /** Mirrors the shape of prototype `OPPS` entries exactly (hustle-shell.html:1466) —
- *  only the fields the ported logic actually reads. */
+ *  only the fields the ported logic actually reads. `id` is the shared BusinessId,
+ *  not a locally-duplicated `string` — see ../business.ts header for why. */
 export interface ScannerOpportunity {
-  id: string;
+  id: BusinessId;
   name: string;
   short: string;
   demand: DemandLevel;
