@@ -30,6 +30,23 @@ export function queuedWrite(key: string, payload: string): Promise<void> {
   return p;
 }
 
+// A stalled AsyncStorage call (device I/O hang, not a rejection) never settles, and
+// since writeQueue only ever chains onto p.catch(), a hang here would permanently
+// deadlock the shared queue for every future queuedWrite/queuedRemove caller too —
+// same reasoning as the withTimeout use on the restore path (App.tsx). Timeout turns
+// a hang into a rejection so writeQueue's existing catch(() => undefined) can recover.
+const REMOVE_TIMEOUT_MS = 5000;
+
+/** Same queue, delete instead of set — used to invalidate a downstream key (e.g. a
+ *  stale Plan/Crisis record after a Scanner recommit). Goes through the same shared
+ *  writeQueue as queuedWrite so a remove and a set to a different key are never
+ *  reordered relative to each other. */
+export function queuedRemove(key: string): Promise<void> {
+  const p = writeQueue.then(() => withTimeout(AsyncStorage.removeItem(key), REMOVE_TIMEOUT_MS));
+  writeQueue = p.catch(() => undefined);
+  return p;
+}
+
 /** Test-only: reset the module-scope queue between test cases. Not used by app code —
  *  the app never resets it (module scope survives the app's whole lifetime), but Jest
  *  reuses the module across tests in a file unless isolated, so the harness needs this. */
