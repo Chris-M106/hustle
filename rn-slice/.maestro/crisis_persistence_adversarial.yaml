@@ -1,0 +1,42 @@
+appId: com.hustlecrisisslice
+---
+# Adversarial persistence retest. Rewritten 2026-08-12 test-harness-hardening pass.
+#
+# Root cause of prior FAILED runs (see .maestro/TEST_HARNESS_INVESTIGATION.md): the old flow
+# used `notVisible: "Loading saved run"` as a mount-complete gate. That assertion passes
+# VACUOUSLY before the JS bundle has rendered anything at all (native splash / blank hierarchy,
+# zero text nodes) — not just after loading genuinely finishes. On this slow emulator, JS
+# bundle start after process launch has been observed to take 20-75s (device-dependent, not an
+# app bug), so the vacuous pass let the flow race ahead of real app state and fail the next
+# step against a still-blank screen.
+#
+# Fix: gate every step on a POSITIVE assertVisible for real content, never on absence of
+# loading text. A positive assertion cannot pass vacuously — the text has to actually be
+# there. Timeout raised to 90s to cover the slowest observed real bundle-start time with margin.
+#
+# Second root cause found this pass: Maestro's `visible:`/`notVisible:` text selector does a
+# FULL regex match (Java String.matches semantics) against a node's entire text, not a
+# substring/contains match. A selector like "Day 1 / " against actual node text "Day 1 / 14"
+# fails to match (trailing "14" is unmatched) even though the text is visibly, verifiably
+# present in the same hierarchy dump used to report the failure. Every selector below is a
+# real regex (`.*` wildcards) for this reason, not a plain prefix string.
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Day 1 / .*"
+    timeout: 90000
+- takeScreenshot: adv_00_fresh_mounted
+- tapOn: "Take the day"
+- takeScreenshot: adv_01_result_visible
+- tapOn: "Next day"
+- extendedWaitUntil:
+    visible: "Day 2 / .*"
+    timeout: 15000
+- takeScreenshot: adv_02_day2
+- stopApp
+- launchApp:
+    clearState: false
+- extendedWaitUntil:
+    visible: "Day 2 / .*"
+    timeout: 90000
+- takeScreenshot: adv_03_restored_after_kill

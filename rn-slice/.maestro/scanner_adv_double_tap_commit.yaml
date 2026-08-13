@@ -1,0 +1,14 @@
+appId: com.hustlecrisisslice
+---
+# NOTE: Maestro re-queries the accessibility tree per step, so it cannot dispatch a
+# genuinely-simultaneous double-tap (the button is already gone from the tree by the
+# time a 2nd tapOn would fire) — this only proves single-tap-then-vanish is correct,
+# not the sub-frame race. See SCANNER_SLICE_REPORT.md -> adversarial case 1.
+- launchApp:
+    clearState: true
+- tapOn: "Scan this spot"
+- tapOn: "Choose this spot"
+- tapOn: ".*Commit R1,200.*"
+- assertVisible: ".*Committed R1,200 to Phone Repair Kiosk.*"
+- assertVisible: ".*Cash: R1,300.*"
+- assertNotVisible: ".*Commit R1,200.*"

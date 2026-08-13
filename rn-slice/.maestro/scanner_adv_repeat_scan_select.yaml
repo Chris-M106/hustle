@@ -1,0 +1,11 @@
+appId: com.hustlecrisisslice
+---
+- launchApp:
+    clearState: true
+- tapOn: "Scan this spot"
+- assertVisible: ".*Demand HIGH.*"
+- tapOn: "Choose this spot"
+- assertVisible: ".*Selected.*not yet committed.*"
+- assertNotVisible: "Scan this spot"
+- assertNotVisible: "Choose this spot"
+- assertVisible: ".*Commit R1,200.*"

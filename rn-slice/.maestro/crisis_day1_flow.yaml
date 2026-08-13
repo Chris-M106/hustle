@@ -1,0 +1,13 @@
+appId: com.hustlecrisisslice
+---
+- launchApp:
+    clearState: true
+- assertVisible: ".*validation slice.*"
+- assertVisible: ".*Day 1 / 14.*"
+- assertVisible: "Take the day"
+- tapOn: "Take the day"
+- assertVisible: "Next day"
+- takeScreenshot: day1_resolved
+- tapOn: "Next day"
+- assertVisible: ".*Day 2 / 14.*"
+- takeScreenshot: day2_started

@@ -1,0 +1,9 @@
+appId: com.hustlecrisisslice
+---
+# Mandatory negative control: asserts a value that is deliberately false, to prove
+# the harness genuinely fails rather than passing vacuously. Must exit non-zero.
+- launchApp:
+    clearState: true
+- assertVisible: ".*HUSTLE.*Scanner.*"
+- tapOn: "Scan this spot"
+- assertVisible: ".*Cash: R999,999.*"

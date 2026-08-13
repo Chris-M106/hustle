@@ -1,0 +1,9 @@
+appId: com.hustlecrisisslice
+---
+- launchApp:
+    clearState: true
+- tapOn: "Scan this spot"
+- tapOn: "Choose this spot"
+- tapOn: ".*Commit R1,200.*"
+- assertVisible: ".*Committed R1,200 to Phone Repair Kiosk.*"
+- assertVisible: ".*Cash: R1,300.*"
