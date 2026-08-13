@@ -36,6 +36,7 @@ import {
   selectSpot,
 } from './src/domain/scanner/logic';
 import type { ForcesTable, ScannerOpportunity, ScannerRunState } from './src/domain/scanner/types';
+import { queuedWrite, withTimeout } from './src/persistence/queuedWrite';
 
 // Single hardcoded business — the highest-verdict, always-affordable spot from the
 // prototype's OPPS table (hustle-shell.html:1466). Multi-business carousel deferred.
@@ -57,28 +58,9 @@ const RESTORE_TIMEOUT_MS = 5000;
 const SAVE_FAIL_NOTE = 'Save failed — progress may not persist.';
 const COMMIT_FAIL_NOTE = 'Commit could not be saved — try again. Your selection is unchanged.';
 
-// Module scope, not per-instance — same reasoning as the Crisis slice: must survive
-// remount so two component instances never issue concurrent setItem calls.
-let writeQueue: Promise<void> = Promise.resolve();
-
-// `Promise.race` alone leaves the loser's timer pending after the race settles — on a
-// screen that can remount, that's a real (if small) leak. `finally` clears it either way.
-function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
-  let timer: ReturnType<typeof setTimeout>;
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(new Error('timeout')), ms);
-  });
-  return Promise.race([p, timeoutPromise]).finally(() => clearTimeout(timer));
-}
-
-function queuedWrite(key: string, payload: string): Promise<void> {
-  const p = writeQueue.then(() => AsyncStorage.setItem(key, payload));
-  // Swallow so a failed write doesn't leave writeQueue permanently rejected for
-  // whichever caller chains onto it next; failure is reported to the caller of
-  // queuedWrite via the returned/awaited promise below, not lost.
-  writeQueue = p.catch(() => undefined);
-  return p;
-}
+// Write-queue implementation (module-scope, shared across all keys) now lives in
+// src/persistence/queuedWrite.ts — extracted unmodified so a test harness can exercise
+// the real mechanism directly. See that file's header comment.
 
 /** Structural + relational check — mirrors the Crisis slice's isValidCrisisState
  *  discipline: refuse corrupt/foreign data and internally-inconsistent data, not
