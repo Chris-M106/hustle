@@ -3,6 +3,17 @@
 Date: 2026-08-12. Scope: `App.tsx` AsyncStorage persistence (restore, save, corruption
 handling, write-queue). Follows an independent adversary review of this same code.
 
+> **Scope note added 2026-08-16 — read before citing this report.** At the time of writing,
+> `App.tsx` contained the RN **Crisis** screen and persisted to `hustle.crisis.v1`. It no longer
+> does: `App.tsx` is now the Scanner slice (`ScannerSlice`, `hustle.scanner.v1`), and Crisis
+> persistence lives in `src/persistence/crisisWriter.ts`. The *mechanisms* validated below —
+> module-scope write queue, read timeout, corrupt-payload backup before overwrite, relational
+> state validation — survive in today's code (`src/persistence/queuedWrite.ts` and `App.tsx`'s
+> `isValidScannerState`), but every file, key, and line reference in this report is historical.
+> The findings, dispositions, and the "Explicit limitations" section remain accurate about what
+> was and was not exercised, and none of those limitations have since been closed. Current
+> architecture: `HUSTLE_ARCHITECTURE_CURRENT_STATE.md`.
+
 ## Verdict
 
 **CONDITIONAL — do not call persistence complete or fully verified.** All CRITICAL and

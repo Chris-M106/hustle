@@ -36,7 +36,13 @@ outside the viewport. Fixed by excluding `.skip` from the selector — a live ex
 this file's own point: a DOM-present element is not automatically a genuinely
 interactive one, and only running against the actual render surfaces that gap.
 
-9/9 tests passing across all three viewport projects as of 2026-08-11.
+9/9 tests passing across all three viewport projects as of 2026-08-11 — **smoke tier only, and
+a later adversary review found the assertions are not HUSTLE-specific enough to distinguish the
+real application from a 45-byte stub page.** Read "9/9 passing" as "the page loads and the
+primary CTA is clickable," never as journey validation. Items 2-8 of the priority list below
+(archetype through state persistence) have no automated coverage at all. The number is kept
+because the harness itself is real and does catch launch/console regressions; it is qualified
+here so it is not mistaken for evidence it does not carry.
 
 ## The two standing rules
 

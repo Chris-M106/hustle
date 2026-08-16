@@ -12,9 +12,17 @@ Ending), currently existing as **two parallel builds**:
 1. `prototype/hustle-shell.html` — single-file vanilla-JS browser prototype, all 4 stages
    complete, Sunrise visual system applied (`DESIGN.md`). This is the **canonical
    design/content source** — still actively maintained, not frozen.
-2. `rn-slice/` — React Native (Hermes, New Architecture) **Crisis-stage-only vertical slice**,
-   built to validate the RN architecture recommendation, not a migration in progress. Domain
-   logic in `domain-ts/crisis/` is a 1:1 port of the prototype's Crisis arithmetic.
+2. `rn-slice/` — React Native (Hermes, New Architecture) vertical slice, built to validate the
+   RN architecture recommendation, not a migration in progress. `App.tsx` is now the **Scanner**
+   slice (`ScannerSlice`, `STORAGE_KEY = 'hustle.scanner.v1'`), not the earlier Crisis screen.
+   Crisis exists only as a persistence writer/reader (`src/persistence/crisisWriter.ts`) plus an
+   experimental runtime bridge inside `App.tsx` — there is **no Crisis screen and no Plan stage
+   in RN**. Current domain logic lives in `rn-slice/src/domain/`; the root `domain-ts/` is an
+   earlier historical port kept for reference, not the current source.
+
+**Architecture baseline**: `rn-slice/HUSTLE_ARCHITECTURE_CURRENT_STATE.md` is the authoritative
+current-state description of the RN slice (ownership, persistence contract, what is implemented
+versus future). Read it before making any RN architectural claim.
 
 No migration of the full app has started. That is a deliberate, binding stop condition, not an
 oversight — see `DECISIONS.md` → "React Native as production platform."
@@ -40,20 +48,40 @@ oversight — see `DECISIONS.md` → "React Native as production platform."
 - **Domain layer** (`domain-ts/crisis`): adversary-cleared over 3 rounds, `tsc --strict`
   clean, 1000-run differential sim vs. prototype found 0 arithmetic mismatches. High
   confidence.
-- **RN Crisis screen** (`rn-slice/App.tsx`): adversary-cleared, all 7 confirmed issues fixed,
-  screenshot-verified on emulator. High confidence for what it covers (single-stage,
-  no-persistence UI).
+- **RN Crisis screen**: historical. The Crisis screen that once lived in `rn-slice/App.tsx` was
+  adversary-cleared (all 7 confirmed issues fixed, screenshot-verified on emulator), but that
+  component is no longer what `App.tsx` contains. There is currently no Crisis screen in RN, and
+  no Crisis resume API — `launchCrisis` is create-only and overwrites unconditionally.
+- **RN Scanner slice** (`rn-slice/App.tsx`, current): scan → select → commit → persist →
+  force-stop → relaunch → restore, EMULATOR-VERIFIED, adversary round 2 applied. Details below
+  under "Next Action" and in `rn-slice/SCANNER_SLICE_REPORT.md`.
+- **Recommit invalidation**: NOT runtime-integrated. `commitSpot()` computes a `resetDownstream`
+  flag (`src/domain/scanner/logic.ts:118`) and returns it; `App.tsx`'s `commit()` discards it.
+  `invalidateDownstreamOnRecommit` has zero production callers — it is exercised by tests only.
+  Test coverage is not runtime integration.
 - **RN architecture end-to-end**: CONDITIONAL GO. Two adversarial emulator passes done on
   `hustle_lowend` (release APK): cold start, genuine kill/restart, rapid kill/relaunch, network
   interruption, spam-tap/swipe/rotation stress, 3x Maestro regression — all clean, all
   EMULATOR-VERIFIED. **Zero REAL-DEVICE-UNVERIFIED items have been closed** — this remains the
   single biggest open gap. Full detail: `RN_VALIDATION_REPORT.md`.
-- **Persistence**: AsyncStorage-backed persistence now exists in `rn-slice/App.tsx`
-  (restore, save-queue, corruption handling). An independent adversary review found 3
+- **Persistence**: AsyncStorage-backed persistence exists in `rn-slice/App.tsx`
+  (restore, save-queue, corruption handling). Note that
+  `rn-slice/PERSISTENCE_VALIDATION_REPORT.md` documents the *Crisis-era* `App.tsx` — the
+  mechanism it validated (module-scope write queue, timeout, corrupt-backup) survives in
+  today's Scanner `App.tsx` and in `src/persistence/queuedWrite.ts`, but its file/key
+  references are historical. An independent adversary review found 3
   CRITICAL + 4 MAJOR defects; all CRITICALs and most MAJORs are fixed and independently
   re-verified (jest + real component, EMULATOR-VERIFIED screenshot inspection). **Not**
   validated: save-retry logic still missing, no torn-write/storage-full/concurrent-instance
   testing, no real device. Full detail: `rn-slice/PERSISTENCE_VALIDATION_REPORT.md`.
+- **Step 14A Crisis bridge** (`App.tsx`, `testID="crisisBridgeBtn"`): experimental validation
+  instrumentation, not product architecture and not Crisis UX. It calls
+  `launchCrisis`/`readCrisis` once per tap so the Crisis persistence path can be exercised
+  through the real app lifecycle. It is ungated and user-reachable one tap after commit —
+  deliberate, because it is the only execution path behind every EMULATOR-VERIFIED Crisis
+  persistence result and no physical device exists. It proves nothing about recommit
+  integration. Binding removal trigger and full classification:
+  `rn-slice/HUSTLE_ARCHITECTURE_CURRENT_STATE.md` §8 category B-1.
 - **Maestro test harness**: the persistence flow's prior FAILED-but-actually-correct results
   were root-caused, not just worked around — two test-authoring bugs (a `notVisible`-as-
   mount-gate that passes vacuously before the JS bundle renders anything, and bare-prefix text
@@ -90,14 +118,18 @@ oversight — see `DECISIONS.md` → "React Native as production platform."
   spike (`nav-spike` branch, `rn-slice/NAVIGATION_SPIKE_REPORT.md`): PASS, zero app/architecture
   bugs. Shared state, back-nav, kill/relaunch, rapid nav all correct against the existing
   AsyncStorage write-queue pattern. `react-navigation` deferred, not rejected — see
-  `DECISIONS.md`. Spike NOT migrated into `main`; `main` (`6abd4a4`) stays the Crisis-slice
-  baseline.
+  `DECISIONS.md`. Spike NOT migrated. (Branch note: the `main`/`nav-spike`/`scanner-slice`
+  branches referenced here belong to the pre-consolidation RN repository, now reachable only via
+  the `rn-rewrite-src` remote. This repository's working branch is `master`.)
 - Reanimated/Skia game-feel layer — untouched, still a real unknown for the next slice.
 - Monetization model — deliberately deferred, framed but not decided (`ROADMAP.md` Phase 4).
 
 ## Current Objective
 
-Institutional-memory documentation pass (this task) — no code, no migration, no new testing.
+Architecture freeze / public-baseline closure — documentation accuracy only. No code, no
+migration, no new feature work. The freeze commit `6b00674` is local and unpushed; deciding
+whether it becomes the public authoritative state is the open question. Review:
+`rn-slice/HUSTLE_ARCHITECTURE_PUBLIC_BASELINE_REVIEW.md`.
 
 ## Write-Queue Coexistence Experiment (2026-08-12/13)
 
@@ -112,9 +144,10 @@ corruption, per-write failure isolation, queue doesn't wedge after a failure —
 re-inspected by the coordinator this pass. Corroborates the existing architecture decision, no
 change to it; not a Librarian candidate per the subagent's own assessment.
 
-**Uncommitted in `rn-slice`** (not committed, awaiting user go/no-go): `App.tsx` (two call sites
-now import from the new module), new `src/persistence/queuedWrite.ts`, new
-`__tests__/persistence.coexistence.test.ts` (9 tests, recommended as a keep-as-regression asset).
+Since committed: `App.tsx`, `src/persistence/queuedWrite.ts`, and
+`__tests__/persistence.coexistence.test.ts` are all in the repository. Still uncommitted at the
+time of writing: `prototype/hustle-shell.html` (unrelated causal-feedback pilot) and the
+untracked root `domain-ts/` — both deliberately excluded from the architecture baseline.
 
 Domain questions this experiment deliberately documented but did NOT resolve: business-identity
 contract (shared constant module vs. duplicated per-slice), persistence-hop failure semantics,

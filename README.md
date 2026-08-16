@@ -35,7 +35,13 @@ doesn't:
   the assertions aren't HUSTLE-specific enough to distinguish the real app from a 45-byte
   stub page — treat it as "the page loads," not "HUSTLE works." Detail in `TESTING.md`.
 - Persistence, Scanner-commit, and recommit-invalidation logic in `rn-slice/` have each gone
-  through adversary review with fixes applied and re-verified — see
+  through adversary review with fixes applied and re-verified. Note that recommit invalidation
+  is reviewed and tested **logic**, not wired runtime behaviour: `commitSpot()` returns a
+  `resetDownstream` flag that the commit handler discards, and
+  `invalidateDownstreamOnRecommit` has no production caller. Likewise there is no Plan stage,
+  no Crisis screen, and no Crisis resume API in RN — `launchCrisis` is create-only. See
+  `rn-slice/HUSTLE_ARCHITECTURE_CURRENT_STATE.md` for the authoritative boundary between what
+  is implemented and what is future architecture, plus
   `rn-slice/PERSISTENCE_VALIDATION_REPORT.md`, `rn-slice/SCANNER_SLICE_REPORT.md`, and the
   `KNOWN UNENFORCED INVARIANT` note in `rn-slice/src/domain/recommit.ts` for what remains a
   documented, accepted gap rather than a fixed one.
