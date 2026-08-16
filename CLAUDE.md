@@ -83,6 +83,12 @@ system: `LESSONS_LEARNED.md`, `NEXT_APP_PLAYBOOK.md`.
   broadly reusable and pending a separate librarian extraction pass.
 - **`NEXT_APP_PLAYBOOK.md`** → What to do differently starting the next app, grounded in HUSTLE
   evidence — pre-build questions, questions to ask Claude, knowledge gaps, principle synthesis.
+- **`rn-slice/HUSTLE_ARCHITECTURE_CURRENT_STATE.md`** → RN slice only, subordinate to
+  `ARCHITECTURE.md`: the frozen current-state architecture baseline for the React Native
+  slice (ownership, persistence contract, current-vs-experimental-vs-future boundaries).
+  `ARCHITECTURE.md` remains the project's general architecture source. Note: this is the one
+  authoritative baseline among the ~15 `rn-slice/HUSTLE_ARCHITECTURE_*.md` files — the rest
+  are superseded step reports, read them only for history.
 - **`RN_VALIDATION_REPORT.md`** → Standalone report: RN architecture CONDITIONAL GO verdict,
   what was validated, what wasn't, both adversarial emulator validation passes.
 - **`ANDROID_SETUP.md`** → Android SDK/emulator environment: canonical paths, versions, the

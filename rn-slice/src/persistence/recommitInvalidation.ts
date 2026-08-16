@@ -29,10 +29,22 @@ export interface InvalidationResult {
  *  by re-reading the key after the remove settles, not inferred from the remove
  *  promise resolving — callers must still not treat planCleared/crisisCleared as a
  *  substitute for the read-side guard (src/domain/recommit.ts): they describe storage
- *  state at one instant, not a durable guarantee. Caller (App.tsx's commit handler)
- *  awaits this AFTER the new Scanner commit is itself durably persisted — same
- *  ordering discipline as Scanner's own commit atomicity (persist before render-state
- *  flips). */
+ *  state at one instant, not a durable guarantee.
+ *
+ *  CALLER CONTRACT — FUTURE, NOT CURRENT. As of 2026-08-16 this function has zero
+ *  production callers: App.tsx does not import this module, and nothing on the Scanner
+ *  commit path invokes it. `commitSpot()` computes a `resetDownstream` boolean
+ *  (src/domain/scanner/logic.ts:118) and returns it, but App.tsx discards that value and
+ *  no invalidation runs — a returned `resetDownstream` is NOT executed invalidation. This
+ *  is an intentional future boundary, not an oversight (see
+ *  HUSTLE_ARCHITECTURE_STEP_14B_RUNTIME_REACHABILITY.md), and it is harmless today only
+ *  because App.tsx has one hardcoded business, so `resetDownstream` is structurally always
+ *  false. When a real caller is finally written, it MUST await this AFTER the new Scanner
+ *  commit is itself durably persisted — same ordering discipline as Scanner's own commit
+ *  atomicity (persist before render-state flips).
+ *
+ *  An earlier version of this comment described that caller in the present tense, as
+ *  though App.tsx's commit handler already awaited this. It never did. */
 export async function invalidateDownstreamOnRecommit(
   prevCommittedTo: BusinessId | null,
   nextCommittedTo: BusinessId,

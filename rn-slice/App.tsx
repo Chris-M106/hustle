@@ -37,6 +37,8 @@ import {
 } from './src/domain/scanner/logic';
 import type { ForcesTable, ScannerOpportunity, ScannerRunState } from './src/domain/scanner/types';
 import { queuedWrite, withTimeout } from './src/persistence/queuedWrite';
+import { isBusinessId } from './src/domain/business';
+import { launchCrisis, readCrisis, type CrisisReadResult } from './src/persistence/crisisWriter';
 
 // Single hardcoded business — the highest-verdict, always-affordable spot from the
 // prototype's OPPS table (hustle-shell.html:1466). Multi-business carousel deferred.
@@ -108,6 +110,15 @@ function ScannerSlice() {
   const [restoreNote, setRestoreNote] = useState<string | null>(null);
   const [committing, setCommitting] = useState(false);
   const [commitError, setCommitError] = useState<string | null>(null);
+  // Step 14A runtime bridge — NOT part of the Crisis product experience. Exercises
+  // the existing launchCrisis/readCrisis (src/persistence/crisisWriter.ts) through
+  // the real app lifecycle for architectural validation only. See
+  // HUSTLE_ARCHITECTURE_STEP_14A_RUNTIME_BRIDGE.md. No new persistence, no new
+  // BusinessId authority — committedTo/cash are read directly from this same
+  // Scanner state that already owns them.
+  const [crisisBridgeBusy, setCrisisBridgeBusy] = useState(false);
+  const [crisisBridgeError, setCrisisBridgeError] = useState<string | null>(null);
+  const [crisisBridgeResult, setCrisisBridgeResult] = useState<CrisisReadResult | null>(null);
   const hydrated = useRef(false);
   const committingRef = useRef(false);
   // Set true whenever the state we're about to setState() has already been persisted
@@ -268,6 +279,30 @@ function ScannerSlice() {
     }
   }
 
+  // Step 14A runtime bridge handler — see comment at the state declarations above.
+  // Uses this component's own state.committedTo/state.cash exactly as commit()
+  // computed them; does not read or write any second source of business identity.
+  async function startCrisisBridge() {
+    if (crisisBridgeBusy) return;
+    const committedTo = state.committedTo;
+    if (!isBusinessId(committedTo) || state.cash === null) {
+      setCrisisBridgeError('Not committed to a valid business yet.');
+      return;
+    }
+    setCrisisBridgeBusy(true);
+    setCrisisBridgeError(null);
+    try {
+      await launchCrisis(committedTo, state.cash);
+      const read = await readCrisis(committedTo);
+      setCrisisBridgeResult(read);
+    } catch (e) {
+      console.warn('[hustle] Step 14A crisis bridge failed', e);
+      setCrisisBridgeError('Crisis bridge failed — see console.');
+    } finally {
+      setCrisisBridgeBusy(false);
+    }
+  }
+
   if (restoring) {
     return (
       <SafeAreaView style={styles.safe}>
@@ -358,6 +393,29 @@ function ScannerSlice() {
                   <Text style={styles.body} testID="cash">
                     Cash: R{(state.cash ?? 0).toLocaleString()}
                   </Text>
+                  <TouchableOpacity
+                    style={[styles.button, styles.commitButton]}
+                    testID="crisisBridgeBtn"
+                    onPress={startCrisisBridge}
+                    disabled={crisisBridgeBusy}
+                  >
+                    {crisisBridgeBusy ? (
+                      <ActivityIndicator color="#14100D" />
+                    ) : (
+                      <Text style={styles.buttonText}>Step 14A: launch + read Crisis (bridge)</Text>
+                    )}
+                  </TouchableOpacity>
+                  {crisisBridgeError && (
+                    <Text style={styles.overbudget} testID="crisisBridgeError">{crisisBridgeError}</Text>
+                  )}
+                  {crisisBridgeResult && (
+                    <Text style={styles.body} testID="crisisBridgeResult">
+                      readCrisis: {crisisBridgeResult.kind}
+                      {crisisBridgeResult.kind === 'valid'
+                        ? ` (day ${crisisBridgeResult.state.day}, cash R${crisisBridgeResult.state.cash})`
+                        : ''}
+                    </Text>
+                  )}
                 </View>
               )}
             </>

@@ -21,21 +21,24 @@ export function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
   return Promise.race([p, timeoutPromise]).finally(() => clearTimeout(timer));
 }
 
+// A stalled AsyncStorage call (device I/O hang, not a rejection) never settles, and
+// since writeQueue only ever chains onto p.catch(), a hang here would permanently
+// deadlock the shared queue for every future queuedWrite/queuedRemove caller too —
+// same reasoning as the withTimeout use on the restore path (App.tsx). Timeout turns
+// a hang into a rejection so writeQueue's existing catch(() => undefined) can recover.
+// Previously only queuedRemove had this; queuedWrite lacked it (gate finding F9) —
+// a hung setItem permanently deadlocked every future write/remove on this queue.
+const WRITE_TIMEOUT_MS = 5000;
+const REMOVE_TIMEOUT_MS = 5000;
+
 export function queuedWrite(key: string, payload: string): Promise<void> {
-  const p = writeQueue.then(() => AsyncStorage.setItem(key, payload));
+  const p = writeQueue.then(() => withTimeout(AsyncStorage.setItem(key, payload), WRITE_TIMEOUT_MS));
   // Swallow so a failed write doesn't leave writeQueue permanently rejected for
   // whichever caller chains onto it next; failure is reported to the caller of
   // queuedWrite via the returned/awaited promise below, not lost.
   writeQueue = p.catch(() => undefined);
   return p;
 }
-
-// A stalled AsyncStorage call (device I/O hang, not a rejection) never settles, and
-// since writeQueue only ever chains onto p.catch(), a hang here would permanently
-// deadlock the shared queue for every future queuedWrite/queuedRemove caller too —
-// same reasoning as the withTimeout use on the restore path (App.tsx). Timeout turns
-// a hang into a rejection so writeQueue's existing catch(() => undefined) can recover.
-const REMOVE_TIMEOUT_MS = 5000;
 
 /** Same queue, delete instead of set — used to invalidate a downstream key (e.g. a
  *  stale Plan/Crisis record after a Scanner recommit). Goes through the same shared
