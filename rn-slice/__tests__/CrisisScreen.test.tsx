@@ -45,7 +45,7 @@ async function renderCrisis(cash = 5000): Promise<ReactTestRenderer.ReactTestRen
   let root!: ReactTestRenderer.ReactTestRenderer;
   await act(async () => {
     root = ReactTestRenderer.create(<CrisisScreen committedTo="phonerepair" openingCash={cash} />);
-    await new Promise((r) => setTimeout(r, 0));
+    await new Promise<void>((r) => setTimeout(r, 0));
   });
   return root;
 }
