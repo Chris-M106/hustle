@@ -1,9 +1,11 @@
 /**
  * HUSTLE — Scanner screen.
- * Unmodified port of the Scanner vertical-validation slice (formerly the whole of
- * App.tsx) into the app shell's screen set. Behaviour, persistence, and testIDs
- * are unchanged — only the module location and export shape moved. See
- * SCANNER_SLICE_PLAN.md / SCANNER_SLICE_REPORT.md for the original validation.
+ * Core Scanner behavior from the original validation (SCANNER_SLICE_PLAN.md /
+ * SCANNER_SLICE_REPORT.md) ported into the app shell's screen set. Persistence
+ * and most testIDs are unchanged. testID changes: the crisisBridge* suite
+ * (crisisBridgeBtn, crisisBridgeError, crisisBridgeResult) was removed in the
+ * consolidation — that experimental instrumentation is superseded by the real
+ * CrisisScreen now wired in App.tsx.
  *
  * Domain logic (../domain/scanner/{types,logic}.ts) is an unmodified copy of the
  * adversary-pending hustle/domain-ts/scanner layer; only this file is RN-specific UI.

@@ -3,9 +3,10 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 /**
- * Not-yet-built stage. Only Scanner has a real screen (Ping 2). Labeled
- * explicitly as unimplemented rather than faking product content — do not
- * mistake this for the intended UX of that stage.
+ * Stage placeholder for stages not yet integrated into the app shell.
+ * Scanner, Plan, and Crisis are real screens; Profile and Ending are still
+ * placeholders until their own consolidation. Labeled explicitly to avoid
+ * mistaking placeholder text for the intended UX.
  */
 export default function Placeholder({
   name,
@@ -19,8 +20,8 @@ export default function Placeholder({
       <View style={styles.body}>
         <Text style={styles.header} testID="placeholderHeader">{name} — not yet implemented</Text>
         <Text style={styles.note}>
-          This stage has no RN screen yet. Only Scanner is built. See CLAUDE.md
-          implementation order.
+          This stage does not have an RN screen yet. See CLAUDE.md for the
+          implementation plan.
         </Text>
         <TouchableOpacity style={styles.button} testID="placeholderBackBtn" onPress={() => onNavigate('scanner')}>
           <Text style={styles.buttonText}>Back to Scanner</Text>
